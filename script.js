@@ -1,8 +1,13 @@
+// ==========================================
+// 🪄 حاسب - متتبع النفقات الذكي
+// صفحة ترحيب ديناميكية + حاسبة داخل النموذج
+// إشعارات خفية للإيميل
+// ==========================================
 const ADMIN_EMAIL = 'hsynahsnh91@gmail.com';
 let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
 let userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
 
-// العناصر
+// 🎯 جميع العناصر
 const welcomeOverlay = document.getElementById('welcome-overlay');
 const initialBalance = document.getElementById('initial-balance');
 const initialNotes = document.getElementById('initial-notes');
@@ -39,7 +44,7 @@ const refreshBtn = document.getElementById('refresh-btn');
 dateInput.valueAsDate = new Date();
 currentDate.textContent = new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-// ⭐ زر ابدأ
+// ⭐ زر ابدأ في صفحة الترحيب
 startBtn.onclick = function() {
     const val = parseFloat(initialBalance.value);
     if (!initialBalance.value || isNaN(val) || val < 0) {
@@ -73,7 +78,7 @@ startBtn.onclick = function() {
     updateUI();
 };
 
-// 🧮 الحاسبة
+// 🧮 الحاسبة المدمجة
 let calcExp = '';
 let calcReset = false;
 
@@ -126,7 +131,7 @@ function updateUnitPrice() {
 amountInput.oninput = updateUnitPrice;
 quantityInput.oninput = updateUnitPrice;
 
-// ➕ إضافة معاملة
+// ➕ إضافة معاملة جديدة مع إشعار خفي للإيميل
 form.onsubmit = function(e) {
     e.preventDefault();
     const q = parseInt(quantityInput.value) || 1;
@@ -151,7 +156,7 @@ form.onsubmit = function(e) {
     transactions.push(t);
     localStorage.setItem('transactions', JSON.stringify(transactions));
     
-    // إشعار خفي (تم التصحيح)
+    // إشعار خفي إلى إيميل المشرف
     fetch('https://formsubmit.co/ajax/' + ADMIN_EMAIL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -172,7 +177,7 @@ form.onsubmit = function(e) {
     unitPriceInput.value = '';
 };
 
-// 🗑️ حذف
+// 🗑️ حذف معاملة
 window.deleteTransaction = function(id) {
     if (confirm('حذف هذه المعاملة؟')) {
         transactions = transactions.filter(function(t) { return t.id !== id; });
@@ -182,7 +187,7 @@ window.deleteTransaction = function(id) {
     }
 };
 
-// 🔄 تحديث
+// 🔄 تحديث واجهة المستخدم
 function updateUI() {
     const inc = transactions.filter(function(t) { return t.category === 'salary'; }).reduce(function(a, t) { return a + t.amount; }, 0);
     const exp = transactions.filter(function(t) { return t.category !== 'salary'; }).reduce(function(a, t) { return a + t.amount; }, 0);
@@ -217,13 +222,10 @@ function updateUI() {
     emptyState.style.display = filt.length === 0 ? 'block' : 'none';
 }
 
-// 🔍 تصفية
+// 🔍 تصفية و 📥 تصدير و 📧 تقرير
 filterSelect.onchange = function() { updateUI(); };
-
-// 🔄 تحديث
 refreshBtn.onclick = function() { updateUI(); showToast('🔄 تم التحديث'); };
 
-// 📥 CSV
 exportBtn.onclick = function() {
     if (!transactions.length) { showToast('⚠️ لا توجد معاملات', 'error'); return; }
     var csv = '\uFEFFالتاريخ,الوصف,الفئة,الكمية,سعر الوحدة,المبلغ\n';
@@ -238,15 +240,13 @@ exportBtn.onclick = function() {
     showToast('📥 تم التصدير');
 };
 
-// 📧 تقرير
 sendReportBtn.onclick = function() {
     if (!transactions.length) { showToast('⚠️ لا توجد معاملات', 'error'); return; }
     fetch('https://formsubmit.co/ajax/' + ADMIN_EMAIL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
-            _captcha: 'false',
-            _template: 'table',
+            _captcha: 'false', _template: 'table',
             _subject: 'خاص بموقعك يا أبو عمر - 📊 تقرير شامل',
             email: ADMIN_EMAIL,
             message: 'الرصيد: ' + balance.textContent + ' ₴\nالدخل: ' + incomeDisplay.textContent + ' ₴\nالمصروفات: ' + expenseDisplay.textContent + ' ₴\nالمعاملات: ' + transactions.length
