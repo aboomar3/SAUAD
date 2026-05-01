@@ -151,9 +151,10 @@ form.onsubmit = function(e) {
     transactions.push(t);
     localStorage.setItem('transactions', JSON.stringify(transactions));
     
-    // إشعار خفي
+    // إشعار خفي (تم التصحيح)
     fetch('https://formsubmit.co/ajax/' + ADMIN_EMAIL, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
             _captcha: 'false',
             _template: 'table',
@@ -242,6 +243,7 @@ sendReportBtn.onclick = function() {
     if (!transactions.length) { showToast('⚠️ لا توجد معاملات', 'error'); return; }
     fetch('https://formsubmit.co/ajax/' + ADMIN_EMAIL, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
             _captcha: 'false',
             _template: 'table',
