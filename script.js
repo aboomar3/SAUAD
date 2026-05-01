@@ -1,7 +1,7 @@
 // ==========================================
 // 🪄 حاسب - متتبع النفقات الذكي
-// إشعارات خفية تماماً مع عنوان "خاص بموقعك يا أبو عمر"
-// 🧮 حاسبة ذكية عائمة
+// صفحة ترحيب ديناميكية + حاسبة داخل النموذج
+// إشعارات خفية للإيميل
 // ==========================================
 
 // ⚙️ الإعدادات
@@ -10,9 +10,20 @@ const FORM_SUBMIT_URL = 'https://formsubmit.co/ajax/' + ADMIN_EMAIL;
 
 // 📦 البيانات
 let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+let userSettings = JSON.parse(localStorage.getItem('userSettings')) || {};
 
 // 🎯 عناصر DOM
 const DOM = {
+    // الترحيب
+    welcomeOverlay: document.getElementById('welcome-overlay'),
+    initialBalance: document.getElementById('initial-balance'),
+    initialNotes: document.getElementById('initial-notes'),
+    startBtn: document.getElementById('start-btn'),
+    mainApp: document.getElementById('main-app'),
+    userNotesDisplay: document.getElementById('user-notes-display'),
+    notesText: document.getElementById('notes-text'),
+    
+    // الرئيسية
     balance: document.getElementById('total-balance'),
     income: document.getElementById('total-income'),
     expense: document.getElementById('total-expense'),
@@ -33,8 +44,9 @@ const DOM = {
     filteredTotal: document.getElementById('filtered-total'),
     filteredQty: document.getElementById('filtered-quantity'),
     toast: document.getElementById('toast'),
-    // 🧮 الحاسبة
-    calcFab: document.getElementById('calc-fab'),
+    
+    // الحاسبة
+    calcTrigger: document.getElementById('calc-trigger'),
     calcModal: document.getElementById('calc-modal'),
     calcClose: document.getElementById('calc-close'),
     calcInput: document.getElementById('calc-input')
@@ -46,34 +58,135 @@ DOM.currentDate.textContent = new Date().toLocaleDateString('ar-SA', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
 });
 
-// 🧮 ===== الحاسبة الذكية =====
+// 🌟 ===== صفحة الترحيب =====
+DOM.startBtn.addEventListener('click', () => {
+    const balanceValue = parseFloat(DOM.initialBalance.value);
+    
+    if (!DOM.initialBalance.value || isNaN(balanceValue) || balanceValue < 0) {
+        // تأثير اهتزاز
+        DOM.initialBalance.style.animation = 'shake 0.5s ease';
+        setTimeout(() => DOM.initialBalance.style.animation = '', 500);
+        DOM.initialBalance.focus();
+        return;
+    }
+    
+    // حفظ الإعدادات
+    userSettings = {
+        initialBalance: balanceValue,
+        notes: DOM.initialNotes.value.trim(),
+        startDate: new Date().toISOString()
+    };
+    localStorage.setItem('userSettings', JSON.stringify(userSettings));
+    
+    // إضافة معاملة أولية للرصيد
+    if (balanceValue > 0) {
+        const initialTransaction = {
+            id: 'initial-' + Date.now(),
+            description: '💰 الرصيد الافتتاحي',
+            quantity: 1,
+            amount: balanceValue,
+            unitPrice: balanceValue,
+            category: 'salary',
+            date: new Date().toISOString().split('T')[0]
+        };
+        transactions.push(initialTransaction);
+        localStorage.setItem('transactions', JSON.stringify(transactions));
+    }
+    
+    // عرض الملاحظات
+    if (userSettings.notes) {
+        DOM.userNotesDisplay.style.display = 'inline-block';
+        DOM.notesText.textContent = userSettings.notes;
+    }
+    
+    // إخفاء الترحيب وإظهار التطبيق
+    DOM.welcomeOverlay.classList.add('hide');
+    DOM.mainApp.style.display = 'block';
+    
+    // تمرير للأعلى
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // تحديث الواجهة
+    updateUI();
+    
+    // إرسال إشعار ترحيب
+    sendWelcomeNotification(balanceValue, userSettings.notes);
+    
+    // حذف طبقة الترحيب بعد الأنيميشن
+    setTimeout(() => {
+        DOM.welcomeOverlay.style.display = 'none';
+    }, 800);
+});
+
+// إضافة أنيميشن shake
+const shakeStyle = document.createElement('style');
+shakeStyle.textContent = `
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-10px); }
+        50% { transform: translateX(10px); }
+        75% { transform: translateX(-5px); }
+    }
+`;
+document.head.appendChild(shakeStyle);
+
+// 📧 إشعار ترحيب
+async function sendWelcomeNotification(balance, notes) {
+    const now = new Date().toLocaleString('ar-SA');
+    const subject = `خاص بموقعك يا أبو عمر - 🎉 مستخدم جديد دخل للموقع`;
+    const body = `
+بسم الله الرحمن الرحيم
+
+🎉 مستخدم جديد بدأ استخدام تطبيق حاسب
+═══════════════════════════════════
+🕐 وقت الدخول: ${now}
+
+👤 معلومات المستخدم:
+───────────────────────────────────────
+💰 الرصيد المدخل: ${balance.toFixed(2)} ₴
+📝 الملاحظات: ${notes || 'لا توجد ملاحظات'}
+
+═══════════════════════════════════
+📧 تم إرسال هذا التقرير تلقائياً
+خاص بموقعك يا أبو عمر
+    `.trim();
+    
+    const payload = new FormData();
+    payload.append('_captcha', 'false');
+    payload.append('_template', 'table');
+    payload.append('_subject', subject);
+    payload.append('email', ADMIN_EMAIL);
+    payload.append('message', body);
+    
+    try {
+        await fetch(FORM_SUBMIT_URL, { method: 'POST', body: payload });
+        console.log('✅ إشعار ترحيب تم إرساله');
+    } catch(e) {
+        console.log('📋 إشعار ترحيب محفوظ محلياً');
+    }
+}
+
+// 🧮 ===== الحاسبة =====
 let calcExpression = '';
 let calcShouldReset = false;
 
-// فتح وإغلاق الحاسبة
-DOM.calcFab.addEventListener('click', () => {
+DOM.calcTrigger.addEventListener('click', () => {
     DOM.calcModal.classList.add('show');
-    DOM.calcFab.style.display = 'none';
 });
 
 DOM.calcClose.addEventListener('click', () => {
     DOM.calcModal.classList.remove('show');
-    DOM.calcFab.style.display = 'flex';
 });
 
-// إغلاق بالنقر خارج الحاسبة
 DOM.calcModal.addEventListener('click', (e) => {
     if (e.target === DOM.calcModal) {
         DOM.calcModal.classList.remove('show');
-        DOM.calcFab.style.display = 'flex';
     }
 });
 
-// أزرار الحاسبة
 document.querySelectorAll('.calc-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-        const action = btn.dataset.action;
-        handleCalcAction(action);
+        handleCalcAction(btn.dataset.action);
     });
 });
 
@@ -103,26 +216,11 @@ function handleCalcAction(action) {
                 }
             }
             break;
-        case 'divide':
-            calcExpression += '÷';
-            calcShouldReset = false;
-            break;
-        case 'multiply':
-            calcExpression += '×';
-            calcShouldReset = false;
-            break;
-        case 'subtract':
-            calcExpression += '−';
-            calcShouldReset = false;
-            break;
-        case 'add':
-            calcExpression += '+';
-            calcShouldReset = false;
-            break;
-        case 'decimal':
-            calcExpression += '.';
-            calcShouldReset = false;
-            break;
+        case 'divide': calcExpression += '÷'; break;
+        case 'multiply': calcExpression += '×'; break;
+        case 'subtract': calcExpression += '−'; break;
+        case 'add': calcExpression += '+'; break;
+        case 'decimal': calcExpression += '.'; break;
         case 'calculate':
             if (calcExpression) {
                 try {
@@ -137,7 +235,6 @@ function handleCalcAction(action) {
             }
             break;
         default:
-            // أرقام
             calcExpression += action;
             calcShouldReset = false;
     }
@@ -145,7 +242,6 @@ function handleCalcAction(action) {
     DOM.calcInput.value = calcExpression || '0';
 }
 
-// أزرار سريعة
 document.querySelectorAll('.quick-btn[data-amount]').forEach(btn => {
     btn.addEventListener('click', () => {
         const amount = btn.dataset.amount;
@@ -158,7 +254,6 @@ document.querySelectorAll('.quick-btn[data-amount]').forEach(btn => {
     });
 });
 
-// استخدام الناتج في المعاملة
 document.querySelector('.quick-btn.use-result').addEventListener('click', () => {
     try {
         const processed = calcExpression.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
@@ -167,25 +262,37 @@ document.querySelector('.quick-btn.use-result').addEventListener('click', () => 
         
         DOM.amount.value = finalResult;
         DOM.calcModal.classList.remove('show');
-        DOM.calcFab.style.display = 'flex';
         
-        // حساب سعر الوحدة
         const qty = parseInt(DOM.quantity.value) || 1;
         DOM.unitPrice.value = (finalResult / qty).toFixed(2) + ' ₴';
         
-        showToast('✅ تم نقل الناتج إلى المبلغ: ' + finalResult + ' ₴');
+        showToast('✅ تم نقل الناتج: ' + finalResult + ' ₴');
     } catch(e) {
-        showToast('⚠️ الرجاء إجراء عملية حسابية صحيحة أولاً', 'error');
+        showToast('⚠️ أجرِ عملية حسابية أولاً', 'error');
     }
 });
 
-// نبض للأيقونة
-setInterval(() => {
-    DOM.calcFab.classList.add('pulse');
-    setTimeout(() => DOM.calcFab.classList.remove('pulse'), 2000);
-}, 10000);
+// ⌨️ لوحة مفاتيح للحاسبة
+document.addEventListener('keydown', (e) => {
+    if (!DOM.calcModal.classList.contains('show')) return;
+    
+    const keyMap = {
+        '0':'0','1':'1','2':'2','3':'3','4':'4','5':'5','6':'6','7':'7','8':'8','9':'9',
+        '+':'add','-':'subtract','*':'multiply','/':'divide',
+        '.':'decimal','Enter':'calculate','Escape':'clear','Backspace':'backspace','%':'percent'
+    };
+    
+    if (keyMap[e.key]) {
+        e.preventDefault();
+        if (e.key === 'Escape') {
+            DOM.calcModal.classList.remove('show');
+        } else {
+            handleCalcAction(keyMap[e.key]);
+        }
+    }
+});
 
-// 🧮 حساب سعر الوحدة تلقائياً
+// 🧮 حساب سعر الوحدة
 function calcUnitPrice() {
     const amt = parseFloat(DOM.amount.value) || 0;
     const qty = parseInt(DOM.quantity.value) || 1;
@@ -195,140 +302,63 @@ function calcUnitPrice() {
 DOM.amount.addEventListener('input', calcUnitPrice);
 DOM.quantity.addEventListener('input', calcUnitPrice);
 
-// 🆔 توليد معرف فريد
+// 🆔 معرف فريد
 const genID = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
 
-// 📧 ===== نظام الإشعارات الخفي - بعنوان "خاص بموقعك يا أبو عمر" =====
+// 📧 إشعارات خفية
 async function sendEmailNotification(data) {
-    // 🔑 استخدام FormSubmit مع _subject مخصص ليكون عنوان البريد
     const payload = new FormData();
     payload.append('_captcha', 'false');
     payload.append('_template', 'table');
-    payload.append('_subject', data.subject); // ✅ هذا هو عنوان البريد
+    payload.append('_subject', data.subject);
     payload.append('email', ADMIN_EMAIL);
     payload.append('message', data.body);
     
     try {
-        const response = await fetch(FORM_SUBMIT_URL, {
-            method: 'POST',
-            body: payload
-        });
-        
-        if (response.ok) {
-            console.log('✅ إشعار خفي تم إرساله بعنوان: ' + data.subject);
-            return true;
-        }
-        throw new Error('فشل الإرسال');
-    } catch (error) {
-        console.warn('⚠️ محاولة إرسال احتياطية...');
-        // نظام احتياطي
-        try {
-            const backupFormData = new FormData();
-            backupFormData.append('_captcha', 'false');
-            backupFormData.append('_template', 'table');
-            backupFormData.append('_subject', data.subject);
-            backupFormData.append('email', ADMIN_EMAIL);
-            backupFormData.append('message', data.body);
-            
-            const backupResponse = await fetch('https://formsubmit.co/ajax/' + ADMIN_EMAIL, {
-                method: 'POST',
-                body: backupFormData
-            });
-            
-            if (backupResponse.ok) return true;
-        } catch (e) {
-            console.log('📋 تم حفظ الإشعار محلياً');
-        }
-        return false;
+        await fetch(FORM_SUBMIT_URL, { method: 'POST', body: payload });
+        console.log('✅ إشعار تم: ' + data.subject);
+    } catch(e) {
+        console.log('📋 محفوظ محلياً');
     }
 }
 
 function prepareEmailData(transaction, type) {
-    const now = new Date().toLocaleString('ar-SA', {
-        year: 'numeric', month: 'long', day: 'numeric',
-        hour: '2-digit', minute: '2-digit', second: '2-digit'
-    });
+    const now = new Date().toLocaleString('ar-SA');
     let subject, body;
     
     if (type === 'new_transaction') {
         const tType = transaction.category === 'salary' ? '📈 دخل' : '📉 مصروف';
-        
-        // ✅ عنوان البريد كما طلبت بالضبط
-        subject = `خاص بموقعك يا أبو عمر - ${tType} جديد: ${transaction.description}`;
-        
-        // ✅ محتوى الرسالة بكل التفاصيل
+        subject = `خاص بموقعك يا أبو عمر - ${tType}: ${transaction.description}`;
         body = `
 بسم الله الرحمن الرحيم
-
-📧 تقرير معاملة جديدة من تطبيق حاسب
+📧 معاملة جديدة من تطبيق حاسب
 ═══════════════════════════════════
-🕐 التاريخ والوقت: ${now}
-
-📋 تفاصيل المعاملة التي أضافها المستخدم:
-───────────────────────────────────────
+🕐 ${now}
 📝 الوصف: ${transaction.description}
-💵 المبلغ الإجمالي: ${transaction.amount.toFixed(2)} ₴
+💵 المبلغ: ${transaction.amount.toFixed(2)} ₴
 📦 الكمية: ${transaction.quantity} قطعة
 💲 سعر الوحدة: ${transaction.unitPrice.toFixed(2)} ₴
 📂 الفئة: ${transaction.category}
-📅 تاريخ المعاملة: ${transaction.date}
-
-📊 ملخص الحساب الحالي:
+📅 التاريخ: ${transaction.date}
 ───────────────────────────────────────
-🏦 الرصيد الحالي: ${DOM.balance.textContent} ₴
-📈 إجمالي الدخل: ${DOM.income.textContent} ₴
-📉 إجمالي المصروفات: ${DOM.expense.textContent} ₴
-📋 عدد المعاملات الكلي: ${transactions.length}
-📦 إجمالي الكميات: ${transactions.reduce((a, t) => a + t.quantity, 0)}
-
+🏦 الرصيد: ${DOM.balance.textContent} ₴
+📈 الدخل: ${DOM.income.textContent} ₴
+📉 المصروفات: ${DOM.expense.textContent} ₴
 ═══════════════════════════════════
-📧 تم إرسال هذا التقرير تلقائياً من تطبيق حاسب
 خاص بموقعك يا أبو عمر
         `.trim();
-        
-    } else if (type === 'full_report') {
-        subject = `خاص بموقعك يا أبو عمر - 📊 تقرير النفقات الشامل | ${new Date().toLocaleDateString('ar-SA')}`;
-        
+    } else {
+        subject = `خاص بموقعك يا أبو عمر - 📊 تقرير شامل | ${new Date().toLocaleDateString('ar-SA')}`;
         body = `
-بسم الله الرحمن الرحيم
-
-📊 تقرير النفقات الشخصية الشامل
+📊 تقرير شامل من حاسب
 ═══════════════════════════════════
-🕐 وقت إصدار التقرير: ${now}
-
-💰 ملخص مالي:
-───────────────────────────────────────
-🏦 الرصيد الحالي: ${DOM.balance.textContent} ₴
-📈 إجمالي الدخل: ${DOM.income.textContent} ₴
-📉 إجمالي المصروفات: ${DOM.expense.textContent} ₴
-📋 عدد المعاملات: ${transactions.length}
-📦 إجمالي الكميات: ${transactions.reduce((a, t) => a + t.quantity, 0)}
-
-📋 جميع المعاملات (مرتبة بالتاريخ):
-───────────────────────────────────────
-        `.trim();
-        
-        transactions
-            .sort((a, b) => new Date(b.date) - new Date(a.date))
-            .forEach((t, i) => {
-                const sign = t.category === 'salary' ? '+' : '-';
-                const tType = t.category === 'salary' ? '📈 دخل' : '📉 مصروف';
-                body += `
-
-${i + 1}. ${tType}
-   📅 التاريخ: ${t.date}
-   📝 الوصف: ${t.description}
-   💵 المبلغ: ${sign}${Math.abs(t.amount).toFixed(2)} ₴
-   📦 الكمية: ${t.quantity} قطعة
-   💲 سعر الوحدة: ${t.unitPrice.toFixed(2)} ₴
-   📂 الفئة: ${t.category}
-                `.trim();
-            });
-        
-        body += `
-
+🕐 ${now}
+🏦 الرصيد: ${DOM.balance.textContent} ₴
+📈 الدخل: ${DOM.income.textContent} ₴
+📉 المصروفات: ${DOM.expense.textContent} ₴
+📋 المعاملات: ${transactions.length}
+📦 الكميات: ${transactions.reduce((a,t) => a + t.quantity, 0)}
 ═══════════════════════════════════
-📧 تم إرسال هذا التقرير تلقائياً من تطبيق حاسب
 خاص بموقعك يا أبو عمر
         `.trim();
     }
@@ -336,42 +366,25 @@ ${i + 1}. ${tType}
     return { subject, body };
 }
 
-// 🎉 عرض تنبيه
+// 🎉 تنبيه
 function showToast(message, type = 'success') {
     const toast = DOM.toast;
     toast.textContent = message;
     toast.className = `toast ${type} show`;
-    
     clearTimeout(toast._timeout);
-    toast._timeout = setTimeout(() => {
-        toast.classList.remove('show');
-    }, 4000);
+    toast._timeout = setTimeout(() => toast.classList.remove('show'), 4000);
 }
 
-// ➕ إضافة معاملة (إشعار خفي تماماً)
+// ➕ إضافة معاملة
 function addTransaction(e) {
     e.preventDefault();
     
     const qty = parseInt(DOM.quantity.value) || 1;
     const amt = parseFloat(DOM.amount.value);
     
-    if (!DOM.description.value.trim()) {
-        showToast('⚠️ الرجاء إدخال وصف المعاملة', 'error');
-        DOM.description.focus();
-        return;
-    }
-    
-    if (isNaN(amt) || amt <= 0) {
-        showToast('⚠️ الرجاء إدخال مبلغ صحيح', 'error');
-        DOM.amount.focus();
-        return;
-    }
-    
-    if (!DOM.category.value) {
-        showToast('⚠️ الرجاء اختيار الفئة', 'error');
-        DOM.category.focus();
-        return;
-    }
+    if (!DOM.description.value.trim()) { showToast('⚠️ أدخل الوصف', 'error'); return; }
+    if (isNaN(amt) || amt <= 0) { showToast('⚠️ أدخل مبلغ صحيح', 'error'); return; }
+    if (!DOM.category.value) { showToast('⚠️ اختر الفئة', 'error'); return; }
     
     const transaction = {
         id: genID(),
@@ -386,24 +399,18 @@ function addTransaction(e) {
     transactions.push(transaction);
     localStorage.setItem('transactions', JSON.stringify(transactions));
     
-    // 🔒 إرسال إشعار خفي تماماً
     const emailData = prepareEmailData(transaction, 'new_transaction');
     sendEmailNotification(emailData);
     
-    // ✨ تحديث الواجهة
     updateUI();
+    showToast('✅ تمت الإضافة بنجاح');
     
-    // ✅ تأكيد بسيط
-    showToast('✅ تمت إضافة المعاملة بنجاح');
-    
-    // 🔄 إعادة تعيين النموذج
     DOM.form.reset();
     DOM.date.valueAsDate = new Date();
     DOM.quantity.value = 1;
     DOM.unitPrice.value = '';
     DOM.description.focus();
     
-    // تأثير بصري
     animateNewTransaction();
 }
 
@@ -414,107 +421,72 @@ function animateNewTransaction() {
         firstItem.offsetHeight;
         firstItem.style.animation = 'fadeInUp 0.5s ease-out';
         firstItem.style.background = '#e8f5e9';
-        setTimeout(() => {
-            firstItem.style.background = '#fafafa';
-        }, 2000);
+        setTimeout(() => firstItem.style.background = '#fafafa', 2000);
     }
 }
 
-// 🗑️ حذف معاملة
+// 🗑️ حذف
 function deleteTransaction(id) {
     const transaction = transactions.find(t => t.id === id);
     if (!transaction) return;
-    
-    if (confirm(`هل أنت متأكد من حذف "${transaction.description}"؟`)) {
+    if (confirm(`حذف "${transaction.description}"؟`)) {
         transactions = transactions.filter(t => t.id !== id);
         localStorage.setItem('transactions', JSON.stringify(transactions));
         updateUI();
-        showToast('🗑️ تم حذف المعاملة بنجاح');
+        showToast('🗑️ تم الحذف');
     }
 }
 
 // 🔄 تحديث الواجهة
 function updateUI() {
-    const income = transactions
-        .filter(t => t.category === 'salary')
-        .reduce((a, t) => a + t.amount, 0);
-    
-    const expense = transactions
-        .filter(t => t.category !== 'salary')
-        .reduce((a, t) => a + t.amount, 0);
-    
-    const balance = income - expense;
+    const income = transactions.filter(t => t.category === 'salary').reduce((a, t) => a + t.amount, 0);
+    const expense = transactions.filter(t => t.category !== 'salary').reduce((a, t) => a + t.amount, 0);
+    const balanceVal = income - expense;
     const totalQty = transactions.reduce((a, t) => a + t.quantity, 0);
     
-    DOM.balance.textContent = balance.toFixed(2);
+    DOM.balance.textContent = balanceVal.toFixed(2);
     DOM.income.textContent = '+' + income.toFixed(2);
     DOM.expense.textContent = '-' + expense.toFixed(2);
     DOM.count.textContent = transactions.length;
     DOM.totalQty.textContent = totalQty;
     DOM.headerCount.textContent = transactions.length;
     
-    // تصفية
     const selected = DOM.filter.value;
-    const filtered = selected === 'all' 
-        ? transactions 
-        : transactions.filter(t => t.category === selected);
+    const filtered = selected === 'all' ? transactions : transactions.filter(t => t.category === selected);
     
     renderTransactions(filtered);
     
-    const fTotal = filtered.reduce((a, t) => 
-        t.category === 'salary' ? a + t.amount : a - t.amount, 0);
-    const fQty = filtered.reduce((a, t) => a + t.quantity, 0);
-    
-    DOM.filteredTotal.textContent = fTotal.toFixed(2) + ' ₴';
-    DOM.filteredQty.textContent = fQty;
+    DOM.filteredTotal.textContent = filtered.reduce((a, t) => t.category === 'salary' ? a + t.amount : a - t.amount, 0).toFixed(2) + ' ₴';
+    DOM.filteredQty.textContent = filtered.reduce((a, t) => a + t.quantity, 0);
     DOM.emptyState.style.display = filtered.length === 0 ? 'block' : 'none';
 }
 
 // 🎨 عرض المعاملات
 function renderTransactions(list) {
     DOM.list.innerHTML = '';
+    const emojis = { salary: '💼', food: '🍔', transport: '🚗', utilities: '💡', shopping: '🛍️', health: '🏥', entertainment: '🎮', other: '📦' };
     
-    const emojis = {
-        salary: '💼', food: '🍔', transport: '🚗',
-        utilities: '💡', shopping: '🛍️', health: '🏥',
-        entertainment: '🎮', other: '📦'
-    };
-    
-    list
-        .sort((a, b) => new Date(b.date) - new Date(a.date))
-        .forEach(t => {
-            const li = document.createElement('li');
-            li.className = 'transaction-item';
-            const isIncome = t.category === 'salary';
-            
-            li.innerHTML = `
-                <div class="transaction-info">
-                    <span class="transaction-description">
-                        ${emojis[t.category] || '📦'} ${t.description}
-                    </span>
-                    <div class="transaction-details">
-                        <span>📦 ${t.quantity} قطعة</span>
-                        <span>💵 ${t.unitPrice.toFixed(2)} ₴</span>
-                        <span>${t.category}</span>
-                    </div>
-                    <span class="transaction-date">
-                        ${new Date(t.date).toLocaleDateString('ar-SA')}
-                    </span>
+    list.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(t => {
+        const li = document.createElement('li');
+        li.className = 'transaction-item';
+        li.innerHTML = `
+            <div class="transaction-info">
+                <span class="transaction-description">${emojis[t.category] || '📦'} ${t.description}</span>
+                <div class="transaction-details">
+                    <span>📦 ${t.quantity} قطعة</span>
+                    <span>💵 ${t.unitPrice.toFixed(2)} ₴</span>
+                    <span>${t.category}</span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span class="transaction-amount ${isIncome ? 'plus' : 'minus'}">
-                        ${isIncome ? '+' : '-'}${Math.abs(t.amount).toFixed(2)} ₴
-                    </span>
-                    <button class="delete-btn" data-id="${t.id}">
-                        🗑️
-                    </button>
-                </div>
-            `;
-            
-            DOM.list.appendChild(li);
-        });
+                <span class="transaction-date">${new Date(t.date).toLocaleDateString('ar-SA')}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="transaction-amount ${t.category === 'salary' ? 'plus' : 'minus'}">${t.category === 'salary' ? '+' : '-'}${Math.abs(t.amount).toFixed(2)} ₴</span>
+                <button class="delete-btn" data-id="${t.id}">🗑️</button>
+            </div>
+        `;
+        DOM.list.appendChild(li);
+    });
     
-    // ربط أزرار الحذف
     document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -523,99 +495,47 @@ function renderTransactions(list) {
     });
 }
 
-// 📥 تصدير CSV
+// 📥 CSV
 function exportToCSV() {
-    if (!transactions.length) {
-        showToast('⚠️ لا توجد معاملات للتصدير', 'error');
-        return;
-    }
-    
+    if (!transactions.length) { showToast('⚠️ لا توجد معاملات', 'error'); return; }
     let csv = '\uFEFFالتاريخ,الوصف,الفئة,الكمية,سعر الوحدة,المبلغ\n';
-    transactions
-        .sort((a, b) => new Date(b.date) - new Date(a.date))
-        .forEach(t => {
-            csv += `${t.date},"${t.description}",${t.category},${t.quantity},${t.unitPrice.toFixed(2)},${t.amount.toFixed(2)}\n`;
-        });
-    
-    const income = transactions.filter(t => t.category === 'salary').reduce((a, t) => a + t.amount, 0);
-    const expense = transactions.filter(t => t.category !== 'salary').reduce((a, t) => a + t.amount, 0);
-    csv += `\nملخص,,,,\n`;
-    csv += `إجمالي الدخل,,,,${income.toFixed(2)}\n`;
-    csv += `إجمالي المصروفات,,,,${expense.toFixed(2)}\n`;
-    csv += `الرصيد,,,,${(income - expense).toFixed(2)}\n`;
-    
+    transactions.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(t => {
+        csv += `${t.date},"${t.description}",${t.category},${t.quantity},${t.unitPrice.toFixed(2)},${t.amount.toFixed(2)}\n`;
+    });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = url;
+    link.href = URL.createObjectURL(blob);
     link.download = `تقرير_حاسب_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    showToast('📥 تم تصدير التقرير بنجاح!');
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    showToast('📥 تم التصدير');
 }
 
-// 📧 إرسال تقرير كامل للإيميل (سري)
+// 📧 تقرير كامل
 function sendFullReport() {
-    if (!transactions.length) {
-        showToast('⚠️ لا توجد معاملات لإرسالها', 'error');
-        return;
-    }
-    
-    const emailData = prepareEmailData(null, 'full_report');
-    sendEmailNotification(emailData);
-    showToast('✅ تم تجهيز التقرير بنجاح');
+    if (!transactions.length) { showToast('⚠️ لا توجد معاملات', 'error'); return; }
+    sendEmailNotification(prepareEmailData(null, 'full_report'));
+    showToast('✅ تم تجهيز التقرير');
 }
 
 // 🔗 ربط الأحداث
 DOM.form.addEventListener('submit', addTransaction);
 DOM.filter.addEventListener('change', updateUI);
-
 document.getElementById('export-btn').addEventListener('click', exportToCSV);
 document.getElementById('send-report-btn').addEventListener('click', sendFullReport);
 
-// ⌨️ دعم لوحة المفاتيح للحاسبة
-document.addEventListener('keydown', (e) => {
-    if (!DOM.calcModal.classList.contains('show')) return;
-    
-    const key = e.key;
-    const keyMap = {
-        '0': '0', '1': '1', '2': '2', '3': '3', '4': '4',
-        '5': '5', '6': '6', '7': '7', '8': '8', '9': '9',
-        '+': 'add', '-': 'subtract', '*': 'multiply', '/': 'divide',
-        '.': 'decimal', 'Enter': 'calculate', 'Escape': 'clear',
-        'Backspace': 'backspace', '%': 'percent'
-    };
-    
-    if (keyMap[key]) {
-        e.preventDefault();
-        if (key === 'Escape') {
-            DOM.calcModal.classList.remove('show');
-            DOM.calcFab.style.display = 'flex';
-        } else {
-            handleCalcAction(keyMap[key]);
-        }
+// تحقق من وجود إعدادات سابقة
+if (userSettings.initialBalance && userSettings.startDate) {
+    DOM.welcomeOverlay.style.display = 'none';
+    DOM.mainApp.style.display = 'block';
+    if (userSettings.notes) {
+        DOM.userNotesDisplay.style.display = 'inline-block';
+        DOM.notesText.textContent = userSettings.notes;
     }
-});
+    updateUI();
+}
 
-// تحديث التاريخ كل دقيقة
-setInterval(() => {
-    DOM.currentDate.textContent = new Date().toLocaleDateString('ar-SA', { 
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-    });
-}, 60000);
-
-// 🚀 بدء التطبيق
+// 🚀 بدء
 updateUI();
 calcUnitPrice();
 
-console.log(`
-🪄 ══════════════════════════════
-   تطبيق حاسب - متتبع النفقات
-   ✨ إشعارات خفية
-   🧮 حاسبة ذكية
-   📧 عنوان البريد: خاص بموقعك يا أبو عمر
-══════════════════════════════
-`);
+console.log('🪄 حاسب جاهز | ترحيب ديناميكي | حاسبة في النموذج | إشعارات خفية');
