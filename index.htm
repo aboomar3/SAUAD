@@ -3,148 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>متتبع النفقات الشخصية | حاسب</title>
+    <title>حاسب - متتبع النفقات الذكي</title>
     <link rel="stylesheet" href="style.css">
-    <!-- إضافة مكتبة EmailJS -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- جسيمات الخلفية -->
+    <div class="particles"></div>
+    
     <div class="container">
-        <header>
-            <h1>💰 حاسب - متتبع النفقات</h1>
-            <p>تحكم في مصروفاتك بذكاء مع إشعارات البريد الإلكتروني</p>
+        <!-- الهيدر -->
+        <header class="main-header">
+            <div class="logo-icon">💰</div>
+            <h1>حاسب</h1>
+            <p class="subtitle">متتبع النفقات الذكي</p>
+            <div class="header-stats">
+                <span class="stat-badge">📅 <span id="current-date"></span></span>
+                <span class="stat-badge">📋 <span id="header-count">0</span> معاملات</span>
+            </div>
         </header>
 
-        <!-- قسم إعدادات الإشعارات -->
-        <div class="notification-settings">
-            <div class="settings-card">
-                <h3>⚙️ إعدادات الإشعارات</h3>
-                <div class="email-setup">
-                    <label>
-                        <input type="checkbox" id="enable-email" checked>
-                        تفعيل إشعارات البريد الإلكتروني
-                    </label>
-                    <input type="email" id="user-email" value="hsynahsnh91@gmail.com" 
-                           placeholder="بريدك الإلكتروني" readonly>
-                    <div class="notification-options">
-                        <label>
-                            <input type="checkbox" id="notify-high-expense" checked>
-                            تنبيه عند المصروفات العالية (أكثر من 1000)
-                        </label>
-                        <label>
-                            <input type="checkbox" id="notify-daily-summary">
-                            ملخص يومي للمعاملات
-                        </label>
-                    </div>
-                </div>
+        <!-- بطاقة الرصيد -->
+        <div class="balance-card glass-card">
+            <div class="balance-header">
+                <h2>💰 الرصيد الحالي</h2>
+                <button class="refresh-btn" onclick="updateUI()" title="تحديث">🔄</button>
             </div>
-        </div>
-
-        <div class="balance-card">
-            <h2>رصيدك الحالي</h2>
-            <p id="total-balance" class="balance-amount">0.00 ₴</p>
+            <p id="total-balance" class="balance-amount">0.00</p>
+            <p class="currency">ريال</p>
+            
             <div class="income-expense">
                 <div class="income-box">
+                    <div class="icon-circle green">📈</div>
                     <p>الدخل</p>
-                    <p id="total-income" class="money plus">+0.00 ₴</p>
+                    <p id="total-income" class="money plus">+0.00</p>
                 </div>
+                <div class="divider"></div>
                 <div class="expense-box">
+                    <div class="icon-circle red">📉</div>
                     <p>المصروفات</p>
-                    <p id="total-expense" class="money minus">-0.00 ₴</p>
+                    <p id="total-expense" class="money minus">-0.00</p>
                 </div>
             </div>
+            
             <div class="stats-details">
-                <p>📊 عدد المعاملات: <span id="transaction-count">0</span></p>
-                <p>📦 إجمالي الكميات: <span id="total-quantity">0</span></p>
+                <div class="stat-item">
+                    <span class="stat-icon">📦</span>
+                    <span>الكميات: <strong id="total-quantity">0</strong></span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">📊</span>
+                    <span>المعاملات: <strong id="transaction-count">0</strong></span>
+                </div>
             </div>
         </div>
 
-        <div class="transaction-form">
-            <h2>إضافة معاملة جديدة</h2>
+        <!-- نموذج الإضافة -->
+        <div class="transaction-form glass-card">
+            <h2>➕ إضافة معاملة جديدة</h2>
             <form id="transaction-form">
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="description">الوصف</label>
-                        <input type="text" id="description" placeholder="مثال: راتب، فاتورة كهرباء..." required>
+                        <label>الوصف</label>
+                        <input type="text" id="description" placeholder="مثال: راتب شهري، فاتورة كهرباء..." required>
                     </div>
                     <div class="form-group">
-                        <label for="quantity">الكمية / العدد</label>
+                        <label>الكمية</label>
                         <input type="number" id="quantity" placeholder="عدد العناصر" min="1" value="1" required>
                     </div>
                 </div>
+                
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="amount">المبلغ الإجمالي</label>
-                        <input type="number" id="amount" placeholder="أدخل المبلغ" step="0.01" required>
+                        <label>المبلغ الإجمالي</label>
+                        <input type="number" id="amount" placeholder="0.00" step="0.01" required>
                     </div>
                     <div class="form-group">
-                        <label for="unit-price">سعر الوحدة</label>
+                        <label>سعر الوحدة</label>
                         <input type="text" id="unit-price" placeholder="يحسب تلقائياً" readonly>
                     </div>
                 </div>
+                
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="category">الفئة</label>
+                        <label>الفئة</label>
                         <select id="category" required>
+                            <option value="">اختر الفئة...</option>
+                            <option value="salary">💼 راتب</option>
                             <option value="food">🍔 طعام</option>
                             <option value="transport">🚗 مواصلات</option>
                             <option value="utilities">💡 فواتير</option>
-                            <option value="entertainment">🎮 ترفيه</option>
-                            <option value="health">🏥 صحة</option>
                             <option value="shopping">🛍️ تسوق</option>
-                            <option value="salary">💼 راتب</option>
+                            <option value="health">🏥 صحة</option>
+                            <option value="entertainment">🎮 ترفيه</option>
                             <option value="other">📦 أخرى</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="date">التاريخ</label>
+                        <label>التاريخ</label>
                         <input type="date" id="date" required>
                     </div>
                 </div>
-                <button type="submit" class="btn">➕ إضافة المعاملة</button>
+                
+                <button type="submit" class="btn btn-primary">
+                    <span class="btn-text">إضافة المعاملة</span>
+                    <span class="btn-icon">✨</span>
+                </button>
             </form>
         </div>
 
-        <div class="filter-section">
-            <h3>تصفية حسب الفئة</h3>
-            <select id="filter-category">
-                <option value="all">الكل</option>
-                <option value="food">🍔 طعام</option>
-                <option value="transport">🚗 مواصلات</option>
-                <option value="utilities">💡 فواتير</option>
-                <option value="entertainment">🎮 ترفيه</option>
-                <option value="health">🏥 صحة</option>
-                <option value="shopping">🛍️ تسوق</option>
-                <option value="salary">💼 راتب</option>
-                <option value="other">📦 أخرى</option>
-            </select>
-            <div class="action-buttons">
-                <button id="export-btn" class="btn-export">📥 تصدير CSV</button>
-                <button id="send-email-btn" class="btn-email">📧 إرسال التقرير</button>
+        <!-- أدوات التصفية -->
+        <div class="filter-section glass-card">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>🔍 تصفية حسب الفئة</label>
+                    <select id="filter-category">
+                        <option value="all">📋 جميع الفئات</option>
+                        <option value="salary">💼 راتب</option>
+                        <option value="food">🍔 طعام</option>
+                        <option value="transport">🚗 مواصلات</option>
+                        <option value="utilities">💡 فواتير</option>
+                        <option value="shopping">🛍️ تسوق</option>
+                        <option value="health">🏥 صحة</option>
+                        <option value="entertainment">🎮 ترفيه</option>
+                        <option value="other">📦 أخرى</option>
+                    </select>
+                </div>
+                <div class="action-buttons">
+                    <button id="export-btn" class="btn btn-success">
+                        📥 تصدير CSV
+                    </button>
+                    <button id="send-report-btn" class="btn btn-info">
+                        📧 تقرير للإيميل
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div class="transactions-list">
-            <h2>سجل المعاملات</h2>
-            <div class="summary-bar">
-                <span>الإجمالي: <strong id="filtered-total">0.00 ₴</strong></span>
-                <span>عدد العناصر: <strong id="filtered-quantity">0</strong></span>
+        <!-- قائمة المعاملات -->
+        <div class="transactions-list glass-card">
+            <div class="list-header">
+                <h2>📋 سجل المعاملات</h2>
+                <div class="list-summary">
+                    <span>المجموع: <strong id="filtered-total">0.00</strong></span>
+                    <span>القطع: <strong id="filtered-quantity">0</strong></span>
+                </div>
             </div>
             <ul id="transaction-list"></ul>
             <div id="empty-state" class="empty-state">
-                <p>📋 لا توجد معاملات حتى الآن</p>
+                <div class="empty-icon">📭</div>
+                <p>لا توجد معاملات حتى الآن</p>
+                <p class="empty-hint">أضف معاملتك الأولى أعلاه</p>
             </div>
         </div>
     </div>
 
-    <!-- نافذة تأكيد الإرسال -->
-    <div id="notification-modal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3 id="modal-title">✅ تم الإرسال</h3>
-            <p id="modal-message"></p>
-        </div>
-    </div>
+    <!-- تنبيه النجاح -->
+    <div id="toast" class="toast"></div>
 
     <script src="script.js"></script>
 </body>
