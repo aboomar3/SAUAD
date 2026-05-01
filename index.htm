@@ -11,7 +11,44 @@
     <!-- جسيمات الخلفية -->
     <div class="particles"></div>
     
-    <div class="container">
+    <!-- ✨ طبقة الترحيب - تظهر أولاً -->
+    <div class="welcome-overlay" id="welcome-overlay">
+        <div class="welcome-container">
+            <div class="welcome-icon">💰</div>
+            <h1 class="welcome-title">مرحباً بك في <span>حاسب</span></h1>
+            <p class="welcome-subtitle">متتبع النفقات الذكي - لنساعدك في إدارة أموالك</p>
+            
+            <div class="welcome-form">
+                <div class="welcome-step" id="step-1">
+                    <div class="step-number">01</div>
+                    <h2>كم يبلغ رصيدك الحالي؟</h2>
+                    <div class="input-with-icon">
+                        <span class="input-icon">💵</span>
+                        <input type="number" id="initial-balance" placeholder="أدخل رصيدك الحالي" step="0.01" min="0">
+                    </div>
+                    <p class="input-hint">مثال: 5000</p>
+                </div>
+                
+                <div class="welcome-step" id="step-2">
+                    <div class="step-number">02</div>
+                    <h2>هل لديك أي ملاحظات؟</h2>
+                    <div class="input-with-icon">
+                        <span class="input-icon">📝</span>
+                        <textarea id="initial-notes" placeholder="اكتب ملاحظاتك هنا... (اختياري)" rows="3"></textarea>
+                    </div>
+                    <p class="input-hint">مثال: ميزانية شهرية، هدف ادخار...</p>
+                </div>
+                
+                <button class="welcome-btn" id="start-btn">
+                    <span>🚀 ابدأ الآن</span>
+                    <span class="btn-sparkle">✨</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🏠 التطبيق الرئيسي - يظهر بعد الترحيب -->
+    <div class="container" id="main-app" style="display: none;">
         <!-- الهيدر -->
         <header class="main-header">
             <div class="logo-icon">💰</div>
@@ -20,6 +57,10 @@
             <div class="header-stats">
                 <span class="stat-badge">📅 <span id="current-date"></span></span>
                 <span class="stat-badge">📋 <span id="header-count">0</span> معاملات</span>
+            </div>
+            <!-- ملاحظات المستخدم -->
+            <div class="user-notes" id="user-notes-display" style="display: none;">
+                <span>📝 ملاحظاتك: <strong id="notes-text"></strong></span>
             </div>
         </header>
 
@@ -76,7 +117,10 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>المبلغ الإجمالي</label>
-                        <input type="number" id="amount" placeholder="0.00" step="0.01" required>
+                        <div class="amount-with-calc">
+                            <input type="number" id="amount" placeholder="0.00" step="0.01" required>
+                            <button type="button" class="calc-trigger-btn" id="calc-trigger" title="فتح الحاسبة">🧮</button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>سعر الوحدة</label>
@@ -158,11 +202,6 @@
         </div>
     </div>
 
-    <!-- 🧮 الحاسبة الذكية - أيقونة عائمة -->
-    <div class="calculator-fab" id="calc-fab" title="حاسبة ذكية">
-        🧮
-    </div>
-
     <!-- 🧮 نافذة الحاسبة -->
     <div class="calculator-modal" id="calc-modal">
         <div class="calculator-container glass-card">
@@ -203,7 +242,7 @@
                 <button class="quick-btn" data-amount="100">+100</button>
                 <button class="quick-btn" data-amount="500">+500</button>
                 <button class="quick-btn" data-amount="1000">+1000</button>
-                <button class="quick-btn use-result" title="استخدام الناتج في المعاملة">📋 استخدام الناتج</button>
+                <button class="quick-btn use-result" title="استخدام الناتج">📋 استخدام الناتج</button>
             </div>
         </div>
     </div>
