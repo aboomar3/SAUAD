@@ -1,3 +1,7 @@
+/* ==========================================
+   حاسب - متتبع النفقات الذكي
+   تصميم كامل مع صفحة ترحيب وحاسبة مدمجة
+   ========================================== */
 * {
     margin: 0;
     padding: 0;
@@ -31,7 +35,7 @@ body {
     z-index: 1;
 }
 
-/* ========== الترحيب ========== */
+/* ========== صفحة الترحيب ========== */
 .welcome-overlay {
     position: fixed;
     top: 0;
@@ -179,7 +183,7 @@ body {
     box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
 }
 
-/* ========== الرئيسية ========== */
+/* ========== التطبيق الرئيسي ========== */
 .main-header {
     text-align: center;
     color: white;
@@ -187,21 +191,9 @@ body {
     padding: 20px;
 }
 
-.logo-icon {
-    font-size: 60px;
-}
-
-.main-header h1 {
-    font-size: 3em;
-    font-weight: 900;
-    margin: 10px 0;
-}
-
-.subtitle {
-    font-size: 1.2em;
-    opacity: 0.9;
-    margin-bottom: 15px;
-}
+.logo-icon { font-size: 60px; }
+.main-header h1 { font-size: 3em; font-weight: 900; margin: 10px 0; }
+.subtitle { font-size: 1.2em; opacity: 0.9; margin-bottom: 15px; }
 
 .header-stats {
     display: flex;
@@ -226,10 +218,7 @@ body {
     font-size: 0.85em;
     display: inline-block;
 }
-
-.user-notes strong {
-    color: #fdcb6e;
-}
+.user-notes strong { color: #fdcb6e; }
 
 .glass-card {
     background: rgba(255,255,255,0.95);
@@ -241,17 +230,8 @@ body {
     border: 1px solid rgba(255,255,255,0.5);
 }
 
-.balance-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.balance-header h2 {
-    font-size: 1.3em;
-    color: #555;
-}
+.balance-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.balance-header h2 { font-size: 1.3em; color: #555; }
 
 .refresh-btn {
     background: #f0f0f0;
@@ -263,18 +243,8 @@ body {
     font-size: 1.2em;
 }
 
-.balance-amount {
-    font-size: 3.5em;
-    font-weight: 900;
-    text-align: center;
-    margin: 10px 0;
-}
-
-.currency {
-    text-align: center;
-    color: #888;
-    margin-bottom: 25px;
-}
+.balance-amount { font-size: 3.5em; font-weight: 900; text-align: center; margin: 10px 0; }
+.currency { text-align: center; color: #888; margin-bottom: 25px; }
 
 .income-expense {
     display: flex;
@@ -285,400 +255,154 @@ body {
     padding: 25px;
     margin-bottom: 20px;
 }
-
-.income-box, .expense-box {
-    text-align: center;
-    flex: 1;
-}
+.income-box, .expense-box { text-align: center; flex: 1; }
 
 .icon-circle {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5em;
-    margin: 0 auto 10px;
+    width: 50px; height: 50px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5em; margin: 0 auto 10px;
 }
-
 .icon-circle.green { background: #d5f5e3; }
 .icon-circle.red { background: #fadbd8; }
 
-.divider {
-    width: 2px;
-    height: 60px;
-    background: #e0e0e0;
-}
+.divider { width: 2px; height: 60px; background: #e0e0e0; }
 
-.money {
-    font-size: 1.4em;
-    font-weight: 700;
-}
-
+.money { font-size: 1.4em; font-weight: 700; }
 .plus { color: #00b894; }
 .minus { color: #e17055; }
 
 .stats-details {
-    display: flex;
-    justify-content: space-around;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 12px;
+    display: flex; justify-content: space-around;
+    padding: 15px; background: #f8f9fa; border-radius: 12px;
 }
-
-.stat-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 500;
-}
-
+.stat-item { display: flex; align-items: center; gap: 8px; font-weight: 500; }
 .stat-item strong { color: #6c5ce7; }
 
 /* نموذج */
-.form-row {
-    display: flex;
-    gap: 18px;
-    margin-bottom: 18px;
+.form-row { display: flex; gap: 18px; margin-bottom: 18px; }
+.form-group { flex: 1; }
+.form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #555; }
+.form-group input, .form-group select {
+    width: 100%; padding: 14px; border: 2px solid #e8e8e8;
+    border-radius: 12px; font-size: 15px; font-family: inherit; background: #fafafa;
 }
-
-.form-group {
-    flex: 1;
+.form-group input:focus, .form-group select:focus {
+    outline: none; border-color: #6c5ce7; background: white;
 }
+.form-group input[readonly] { background: #f0f0f0; color: #888; }
 
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: #555;
-}
-
-.form-group input,
-.form-group select {
-    width: 100%;
-    padding: 14px;
-    border: 2px solid #e8e8e8;
-    border-radius: 12px;
-    font-size: 15px;
-    font-family: inherit;
-    background: #fafafa;
-}
-
-.form-group input:focus,
-.form-group select:focus {
-    outline: none;
-    border-color: #6c5ce7;
-    background: white;
-}
-
-.form-group input[readonly] {
-    background: #f0f0f0;
-    color: #888;
-}
-
-.amount-with-calc {
-    display: flex;
-    gap: 8px;
-}
-
-.amount-with-calc input {
-    flex: 1;
-}
-
+.amount-with-calc { display: flex; gap: 8px; }
+.amount-with-calc input { flex: 1; }
 .calc-trigger-btn {
-    width: 48px;
-    height: 48px;
+    width: 48px; height: 48px;
     background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-size: 22px;
-    cursor: pointer;
+    color: white; border: none; border-radius: 12px;
+    font-size: 22px; cursor: pointer;
 }
-
-.calc-trigger-btn:hover {
-    transform: scale(1.1);
-}
+.calc-trigger-btn:hover { transform: scale(1.1); }
 
 /* أزرار */
 .btn {
-    padding: 14px 28px;
-    border: none;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 700;
-    font-family: inherit;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
+    padding: 14px 28px; border: none; border-radius: 12px;
+    font-size: 16px; font-weight: 700; font-family: inherit;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
 }
-
 .btn-primary {
-    width: 100%;
-    background: linear-gradient(135deg, #6c5ce7, #5a4bd1);
-    color: white;
-    font-size: 1.1em;
-    padding: 16px;
-    justify-content: center;
+    width: 100%; background: linear-gradient(135deg, #6c5ce7, #5a4bd1);
+    color: white; font-size: 1.1em; padding: 16px; justify-content: center;
 }
-
-.btn-primary:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 30px rgba(108, 92, 231, 0.4);
-}
-
-.btn-success {
-    background: #00b894;
-    color: white;
-}
-
-.btn-info {
-    background: #0984e3;
-    color: white;
-}
+.btn-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(108, 92, 231, 0.4); }
+.btn-success { background: #00b894; color: white; }
+.btn-info { background: #0984e3; color: white; }
 
 /* تصفية */
-.filter-row {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-}
-
-.filter-group {
-    flex: 1;
-}
-
-.filter-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: #555;
-}
-
+.filter-row { display: flex; align-items: center; gap: 20px; }
+.filter-group { flex: 1; }
+.filter-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #555; }
 .filter-group select {
-    width: 100%;
-    padding: 12px;
-    border: 2px solid #e8e8e8;
-    border-radius: 12px;
-    font-family: inherit;
+    width: 100%; padding: 12px; border: 2px solid #e8e8e8;
+    border-radius: 12px; font-family: inherit;
 }
-
-.action-buttons {
-    display: flex;
-    gap: 10px;
-    margin-top: 24px;
-}
+.action-buttons { display: flex; gap: 10px; margin-top: 24px; }
 
 /* المعاملات */
-.list-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-}
-
-.list-summary {
-    display: flex;
-    gap: 20px;
-    color: #666;
-}
-
+.list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+.list-summary { display: flex; gap: 20px; color: #666; }
 .list-summary strong { color: #6c5ce7; }
-
-#transaction-list {
-    list-style: none;
-}
+#transaction-list { list-style: none; }
 
 .transaction-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 18px;
-    border-radius: 12px;
-    margin-bottom: 10px;
-    background: #fafafa;
-    border-right: 4px solid transparent;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 18px; border-radius: 12px; margin-bottom: 10px;
+    background: #fafafa; border-right: 4px solid transparent;
 }
-
-.transaction-item:hover {
-    background: #f0f0f0;
-    border-right-color: #6c5ce7;
-}
-
-.transaction-description {
-    font-weight: 700;
-}
-
-.transaction-details {
-    display: flex;
-    gap: 8px;
-    font-size: 0.85em;
-    color: #888;
-    flex-wrap: wrap;
-}
-
-.transaction-details span {
-    background: #e8e8e8;
-    padding: 3px 10px;
-    border-radius: 15px;
-    font-size: 0.8em;
-}
-
-.transaction-date {
-    font-size: 0.8em;
-    color: #aaa;
-}
-
-.transaction-amount {
-    font-weight: 700;
-    font-size: 1.1em;
-    margin: 0 15px;
-}
+.transaction-item:hover { background: #f0f0f0; border-right-color: #6c5ce7; }
+.transaction-description { font-weight: 700; }
+.transaction-details { display: flex; gap: 8px; font-size: 0.85em; color: #888; flex-wrap: wrap; }
+.transaction-details span { background: #e8e8e8; padding: 3px 10px; border-radius: 15px; font-size: 0.8em; }
+.transaction-date { font-size: 0.8em; color: #aaa; }
+.transaction-amount { font-weight: 700; font-size: 1.1em; margin: 0 15px; }
 
 .delete-btn {
-    background: #e17055;
-    color: white;
-    border: none;
-    padding: 8px 14px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.85em;
+    background: #e17055; color: white; border: none;
+    padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 0.85em;
 }
-
 .delete-btn:hover { background: #c0392b; }
 
-.empty-state {
-    text-align: center;
-    padding: 50px;
-    color: #bbb;
-}
-
-.empty-icon {
-    font-size: 60px;
-    margin-bottom: 15px;
-}
+.empty-state { text-align: center; padding: 50px; color: #bbb; }
+.empty-icon { font-size: 60px; margin-bottom: 15px; }
 
 /* Toast */
 .toast {
-    position: fixed;
-    bottom: -100px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: white;
-    padding: 16px 30px;
-    border-radius: 30px;
-    font-weight: 600;
-    z-index: 10000;
-    transition: bottom 0.4s ease;
-    font-size: 15px;
+    position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%);
+    color: white; padding: 16px 30px; border-radius: 30px;
+    font-weight: 600; z-index: 10000; transition: bottom 0.4s ease; font-size: 15px;
 }
-
 .toast.show { bottom: 30px; }
 .toast.success { background: #00b894; }
 .toast.error { background: #e17055; }
 .toast.info { background: #0984e3; }
 
-/* حاسبة */
+/* حاسبة منبثقة */
 .calculator-modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.6);
-    z-index: 10000;
-    align-items: center;
-    justify-content: center;
+    display: none; position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%; background: rgba(0,0,0,0.6);
+    z-index: 10000; align-items: center; justify-content: center;
 }
-
 .calculator-modal.show { display: flex; }
+.calculator-container { width: 340px; padding: 20px; }
 
-.calculator-container {
-    width: 340px;
-    padding: 20px;
-}
-
-.calc-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
+.calc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .calc-close {
-    background: #f0f0f0;
-    border: none;
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 18px;
+    background: #f0f0f0; border: none; width: 35px; height: 35px;
+    border-radius: 50%; cursor: pointer; font-size: 18px;
 }
-
 .calc-close:hover { background: #e74c3c; color: white; }
 
 .calc-display input {
-    width: 100%;
-    padding: 18px;
-    font-size: 28px;
-    font-weight: 700;
-    text-align: right;
-    border: 2px solid #e8e8e8;
-    border-radius: 12px;
-    font-family: 'Cairo', sans-serif;
-    direction: ltr;
+    width: 100%; padding: 18px; font-size: 28px; font-weight: 700;
+    text-align: right; border: 2px solid #e8e8e8; border-radius: 12px;
+    font-family: 'Cairo', sans-serif; direction: ltr;
 }
 
-.calc-buttons {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin: 15px 0;
-}
-
+.calc-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 15px 0; }
 .calc-btn {
-    padding: 16px;
-    font-size: 20px;
-    font-weight: 700;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    font-family: 'Cairo', sans-serif;
+    padding: 16px; font-size: 20px; font-weight: 700; border: none;
+    border-radius: 12px; cursor: pointer; font-family: 'Cairo', sans-serif;
 }
-
 .calc-btn.number { background: #f8f9fa; color: #333; }
 .calc-btn.operator { background: #e8e4ff; color: #6c5ce7; }
 .calc-btn.clear { background: #fadbd8; color: #e74c3c; }
 .calc-btn.equals { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; }
 .calc-btn:active { transform: scale(0.95); }
 
-.calc-quick-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
+.calc-quick-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .quick-btn {
-    padding: 8px 12px;
-    background: #f0f0f0;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
+    padding: 8px 12px; background: #f0f0f0; border: 1px solid #e0e0e0;
+    border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600;
     font-family: 'Cairo', sans-serif;
 }
-
-.quick-btn.use-result {
-    background: #d5f5e3;
-    border-color: #27ae60;
-    color: #27ae60;
-    flex: 1;
-}
+.quick-btn.use-result { background: #d5f5e3; border-color: #27ae60; color: #27ae60; flex: 1; }
 
 /* متجاوب */
 @media (max-width: 768px) {
@@ -692,7 +416,6 @@ body {
     .transaction-item { flex-direction: column; text-align: center; }
     .welcome-title { font-size: 1.8em; }
 }
-
 @media (max-width: 400px) {
     .calculator-container { width: 95%; padding: 15px; }
     .calc-btn { padding: 14px; font-size: 18px; }
